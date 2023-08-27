@@ -1,0 +1,9 @@
+_template_only: true
+type: league
+flags:
+  - expression: races_count<2
+    name: Not enough races to qualify for award.
+scoring:
+  sort: finish_time
+  method: minus_place
+  method_value: 10

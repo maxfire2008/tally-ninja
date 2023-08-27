@@ -1,0 +1,14 @@
+type: race
+name: Duathlon Short Course
+distance: short_course
+date: 2023-07-01
+
+results:
+  - id: donald_trump
+    finish_time: 3473
+  - id: joe_biden
+    finish_time: 3382
+  - id: kamala_harris
+    finish_time: 2537
+  - id: hillary_clinton
+    finish_time: 2964

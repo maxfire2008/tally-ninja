@@ -1,0 +1,6 @@
+_include: _default.yaml
+_template_only: true
+
+eligibility:
+  - event_distance=="short_course"
+  - athlete_age>=19

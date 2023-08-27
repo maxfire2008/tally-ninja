@@ -1,7 +1,0 @@
-type: league
-eligibility:
-  - races_count>=2
-scoring:
-  sort: finish_time
-  method: minus_place
-  method_value: 10
