@@ -4,6 +4,6 @@ flags:
   - expression: races_count<2
     name: Not enough races to qualify for award.
 scoring:
-  sort: finish_time
+  sort_by: finish_time
   method: minus_place
-  method_value: 10
+  method_value: 11
