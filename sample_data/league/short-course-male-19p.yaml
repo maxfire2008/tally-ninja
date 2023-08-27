@@ -2,6 +2,6 @@ _include: default.yaml
 
 name: Short Course Male (19+)
 eligibility:
-    - distance=="short"
-    - age>=19
-    - gender=="male"
+  - distance=="short"
+  - age>=19
+  - gender=="male"
