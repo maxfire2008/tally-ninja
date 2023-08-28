@@ -1,4 +1,4 @@
-import sportsml
+import raceml
 import pathlib
 import safeeval
 import datetime
@@ -44,7 +44,7 @@ def lookup_athlete(athlete_id, data_folder):
     if len(athlete_filenames) > 1:
         raise ValueError("Multiple athletes found: " + athlete_id)
     athlete_filename = athlete_filenames[0]
-    return sportsml.load(athlete_filename)
+    return raceml.load(athlete_filename)
 
 
 def get_eligible_leagues(athlete, results, data_folder: pathlib.Path):
@@ -52,8 +52,8 @@ def get_eligible_leagues(athlete, results, data_folder: pathlib.Path):
 
     for league_filename in data_folder.glob("leagues/**/*.yaml"):
         try:
-            league = sportsml.load(league_filename)
-        except sportsml.TemplateFileError:
+            league = raceml.load(league_filename)
+        except raceml.TemplateFileError:
             continue
 
         ATHLETE_ELIGIBLE = True
@@ -93,12 +93,12 @@ def main():
     data_folder = pathlib.Path("sample_data")
 
     for results_filename in data_folder.glob("results/**/*.yaml"):
-        results = sportsml.load(results_filename)
+        results = raceml.load(results_filename)
 
         for athlete_id in [r["id"] for r in results["results"]]:
             try:
                 athlete = lookup_athlete(athlete_id, data_folder)
-            except sportsml.TemplateFileError:
+            except raceml.TemplateFileError:
                 continue
 
             eligible_leagues = get_eligible_leagues(athlete, results, data_folder)
@@ -119,7 +119,7 @@ def main():
                         potential_competitor = lookup_athlete(
                             potential_competitor_id, data_folder
                         )
-                    except sportsml.TemplateFileError:
+                    except raceml.TemplateFileError:
                         continue
                     if chosen_league in get_eligible_leagues(
                         potential_competitor, results, data_folder
