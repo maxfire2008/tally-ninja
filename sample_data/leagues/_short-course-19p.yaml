@@ -1,4 +1,4 @@
-_include: _default.yaml
+_include: _individuals.yaml
 _template_only: true
 
 eligibility:

@@ -1,0 +1,12 @@
+_include: _default.yaml
+_template_only: true
+type: league
+league_type: individual
+flags:
+  - expression: races_count<2
+    name: Not enough races to qualify for award.
+scoring:
+  sort_by: finish_time
+  method: minus_place
+  method_value: 11
+  contributes_to: individual

@@ -65,7 +65,7 @@ def get_eligible_leagues(athlete, results, data_folder: pathlib.Path):
         }
         interpreter = safeeval.SafeEval()
 
-        for criterion in league["eligibility"]:
+        for criterion in league.get("eligibility", []):
             ast = interpreter.compile(criterion)
             result = interpreter.execute(ast, env)
             # print(">>", athlete, criterion, result)
@@ -76,13 +76,20 @@ def get_eligible_leagues(athlete, results, data_folder: pathlib.Path):
         if ATHLETE_ELIGIBLE:
             eligible_leagues.append(league)
 
-    if len(eligible_leagues) > 1:
-        raise ValueError(
-            "Athlete eligible for multiple leagues: "
-            + athlete["_filename"]
-            + " "
-            + str([l["_filepath"] for l in eligible_leagues])
-        )
+    league_types = set([l["league_type"] for l in eligible_leagues])
+    for league_type in league_types:
+        leagues_of_type = [
+            l for l in eligible_leagues if l.get("league_type", None) == league_type
+        ]
+        if len(leagues_of_type) > 1:
+            raise ValueError(
+                "Athlete eligible for multiple leagues of type "
+                + league_type
+                + ": "
+                + athlete["_filename"]
+                + " "
+                + str([l["_filepath"] for l in leagues_of_type])
+            )
 
     return eligible_leagues
 
@@ -103,13 +110,22 @@ def main():
 
             eligible_leagues = get_eligible_leagues(athlete, results, data_folder)
 
-            if len(eligible_leagues) == 1:
-                chosen_league = eligible_leagues[0]
+            for chosen_league in eligible_leagues:
                 chosen_league_id = chosen_league["_filename"]
+
+                if chosen_league["scoring"]["contributes_to"] == "individual":
+                    contributes_to = athlete_id
+                elif chosen_league["scoring"]["contributes_to"] == "team":
+                    contributes_to = athlete["team"]
+                else:
+                    raise ValueError(
+                        "No contributes_to method found for league: " + chosen_league_id
+                    )
+
                 if chosen_league_id not in tally_board:
                     tally_board[chosen_league_id] = {}
-                if athlete_id not in tally_board[chosen_league_id]:
-                    tally_board[chosen_league_id][athlete_id] = None
+                if contributes_to not in tally_board[chosen_league_id]:
+                    tally_board[chosen_league_id][contributes_to] = None
 
                 competitors = []
 
@@ -143,11 +159,13 @@ def main():
                             place += 1
 
                     if scoring_settings["method"] == "minus_place":
-                        tally_board[chosen_league_id][athlete_id] = abs(
-                            scoring_settings["method_value"] - place
+                        if not tally_board[chosen_league_id][contributes_to]:
+                            tally_board[chosen_league_id][contributes_to] = 0
+                        tally_board[chosen_league_id][contributes_to] += max(
+                            scoring_settings["method_value"] - place, 0
                         )
 
-                if not tally_board[chosen_league_id][athlete_id]:
+                if not tally_board[chosen_league_id][contributes_to]:
                     raise ValueError("No method found for league: " + chosen_league_id)
     pprint(tally_board)
 
