@@ -37,8 +37,8 @@ def calculate_age(born: datetime.date | str, today: datetime.date | str) -> int:
     return delta.days // 365
 
 
-def lookup_athlete(athlete_id, data_folder):
-    athlete_filenames = list(data_folder.glob("athletes/**/" + athlete_id + ".yaml"))
+def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
+    athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + ".yaml"))
     if len(athlete_filenames) < 1:
         raise ValueError("Athlete not found: " + athlete_id)
     if len(athlete_filenames) > 1:
@@ -47,10 +47,10 @@ def lookup_athlete(athlete_id, data_folder):
     return raceml.load(athlete_filename)
 
 
-def get_eligible_leagues(athlete, results, data_folder: pathlib.Path):
+def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
     eligible_leagues = []
 
-    for league_filename in data_folder.glob("leagues/**/*.yaml"):
+    for league_filename in leagues_folder.glob("**/*.yaml"):
         try:
             league = raceml.load(league_filename)
         except raceml.TemplateFileError:
@@ -98,17 +98,20 @@ def main():
     tally_board = {}
 
     data_folder = pathlib.Path("sample_data")
+    results_folder = data_folder / "results"
 
-    for results_filename in data_folder.glob("results/**/*.yaml"):
+    for results_filename in results_folder.glob("**/*.yaml"):
         results = raceml.load(results_filename)
 
         for athlete_id in [r["id"] for r in results["results"]]:
             try:
-                athlete = lookup_athlete(athlete_id, data_folder)
+                athlete = lookup_athlete(athlete_id, data_folder / "athletes")
             except raceml.TemplateFileError:
                 continue
 
-            eligible_leagues = get_eligible_leagues(athlete, results, data_folder)
+            eligible_leagues = get_eligible_leagues(
+                athlete, results, data_folder / "leagues"
+            )
 
             for chosen_league in eligible_leagues:
                 chosen_league_id = chosen_league["_filename"]
@@ -133,12 +136,12 @@ def main():
                     potential_competitor_id = potential_competitor_result["id"]
                     try:
                         potential_competitor = lookup_athlete(
-                            potential_competitor_id, data_folder
+                            potential_competitor_id, data_folder / "athletes"
                         )
                     except raceml.TemplateFileError:
                         continue
                     if chosen_league in get_eligible_leagues(
-                        potential_competitor, results, data_folder
+                        potential_competitor, results, data_folder / "leagues"
                     ):
                         competitors.append(potential_competitor_result)
 
