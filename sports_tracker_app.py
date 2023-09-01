@@ -279,9 +279,6 @@ def import_results(file, athletes_directory, output, year):
                     )
                     athlete = simple_tally.lookup_athlete(filename, athletes_directory)
 
-                    if not results_split:
-                        continue
-
                     current_result = []
 
                     # 1m 20cm1m 25cm1m 35cm1m 40cm1m 45cm1m 50cm1m 55cm1m 60cm
