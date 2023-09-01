@@ -109,8 +109,11 @@ def tally_data(data_folder):
     cache_folder = data_folder / "cache"
     cache_folder.mkdir(exist_ok=True)
 
+    code_folder = pathlib.Path(__file__).parent
+
     atheletes_hash_items = []
     leagues_hash_items = []
+    code_hash_items = []
 
     for item in athletes_folder.glob("**/*.yaml"):
         atheletes_hash_items.append(item)
@@ -120,29 +123,49 @@ def tally_data(data_folder):
         leagues_hash_items.append(item)
         with open(item, "rb") as f:
             leagues_hash_items.append(f.read())
+    for item in code_folder.glob("**/**"):
+        if not item.is_file():
+            continue
+        code_hash_items.append(item)
+        with open(item, "rb") as f:
+            code_hash_items.append(f.read())
 
     athletes_folder_hash = hashlib.sha256(
         repr(atheletes_hash_items).encode()
     ).hexdigest()
     leagues_folder_hash = hashlib.sha256(repr(leagues_hash_items).encode()).hexdigest()
+    code_folder_hash = hashlib.sha256(repr(code_hash_items).encode()).hexdigest()
 
     for results_filename in results_folder.glob("**/*.yaml"):
         results = raceml.load(results_filename)
         # get md5 hash of results file
-        results_hash = hashlib.sha256(repr(results).encode()).hexdigest() + ".racecache"
+        results_hash = (
+            hashlib.sha256(
+                repr(results_filename).encode() + repr(results).encode()
+            ).hexdigest()
+            + ".racecache"
+        )
+        print(results_filename, results_hash)
         cache_file = cache_folder / results_hash
         if cache_file.exists():
             cached_content = raceml.load(cache_file)
             if (
-                cached_content["athletes_folder_hash"] == athletes_folder_hash
-                and cached_content["leagues_folder_hash"] == leagues_folder_hash
+                cached_content.get("athletes_folder_hash") == athletes_folder_hash
+                and cached_content.get("leagues_folder_hash") == leagues_folder_hash
+                and cached_content.get("code_folder_hash") == code_folder_hash
             ):
                 tally_board = raceml.deep_add(tally_board, cached_content["payload"])
                 continue
+            else:
+                # delete cache file
+                if cache_file.suffix == ".racecache":
+                    cache_file.unlink()
+                    print("Deleted out of date cache file: " + str(cache_file))
 
         cached_content = {
             "athletes_folder_hash": athletes_folder_hash,
             "leagues_folder_hash": leagues_folder_hash,
+            "code_folder_hash": code_folder_hash,
             "payload": {},
         }
 
@@ -196,7 +219,6 @@ def tally_data(data_folder):
                         break
 
                 scoring_settings = chosen_league["scoring"][results["type"]]
-                sort_by = scoring_settings["sort_by"]
 
                 if chosen_league_id not in cached_content["payload"]:
                     cached_content["payload"][chosen_league_id] = {}
@@ -204,11 +226,49 @@ def tally_data(data_folder):
                     cached_content["payload"][chosen_league_id][contributes_to] = None
 
                 if scoring_settings["method"] in ["minus_place"]:
-                    # get place among competitors
-                    place = 1
-                    for competitor in competitors:
-                        if competitor[sort_by] < athlete_result[sort_by]:
-                            place += 1
+                    # example results
+                    # 1. 00:20:00
+                    # 1. 00:20:00
+                    # 2. 00:20:01
+                    # 3. 00:20:02
+                    # 4. 00:20:03
+                    # 4. 00:20:03
+                    # 5. 00:20:04
+                    # 6. 00:20:05
+
+                    # calculate place
+                    if scoring_settings["sort_by"] == "lowest_finish_time":
+                        unique_scores = set([c["finish_time"] for c in competitors])
+                        my_score = athlete_result["finish_time"]
+                        place = 1
+                        for score in sorted(unique_scores):
+                            if score < my_score:
+                                place += 1
+                    elif scoring_settings["sort_by"] == "highest_max_result":
+                        unique_scores = set(
+                            [
+                                max(c["results"]) if c["results"] else float("inf")
+                                for c in competitors
+                            ]
+                        )
+                        my_score = (
+                            max(athlete_result["results"])
+                            if athlete_result["results"]
+                            else float("inf")
+                        )
+                        place = 1
+                        for score in sorted(unique_scores, reverse=True):
+                            if score > my_score:
+                                place += 1
+                    else:
+                        raise ValueError(
+                            "No sort_by method found for league: "
+                            + chosen_league_id
+                            + " "
+                            + results["type"]
+                            + " "
+                            + scoring_settings["sort_by"]
+                        )
 
                     if scoring_settings["method"] == "minus_place":
                         if not cached_content["payload"][chosen_league_id][
