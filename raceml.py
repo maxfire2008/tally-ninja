@@ -1,5 +1,6 @@
 import yaml
 import pathlib
+import copy
 
 
 class TemplateFileError(ValueError):
@@ -16,14 +17,36 @@ def deep_merge(base, changes):
     Returns:
         dict: Merged dictionary.
     """
+    new = copy.deepcopy(base)
     for key, value in changes.items():
         if isinstance(value, dict):
-            base[key] = deep_merge(base.get(key, {}), value)
+            new[key] = deep_merge(new.get(key, {}), value)
         elif isinstance(value, list):
-            base[key] = base.get(key, []) + value
+            new[key] = new.get(key, []) + value
         else:
-            base[key] = value
-    return base
+            new[key] = value
+    return new
+
+
+def deep_add(base, changes):
+    """Deep add two dicts and their children (ints and dicts).
+
+    Args:
+        base (dict): Base dictionary.
+        changes (dict): Dictionary with changes to add.
+
+    Returns:
+        dict: Added dictionary.
+    """
+    new = copy.deepcopy(base)
+    for key, value in changes.items():
+        if isinstance(value, dict):
+            new[key] = deep_add(new.get(key, {}), value)
+        elif isinstance(value, int):
+            new[key] = new.get(key, 0) + value
+        else:
+            new[key] = value
+    return new
 
 
 def load(filepath, allow_template_only=False):
@@ -53,3 +76,8 @@ def load(filepath, allow_template_only=False):
 
         return deep_merge(include_data, data)
     return data
+
+
+def dump(filepath, content):
+    with open(filepath, "w", encoding="utf-8") as f:
+        yaml.dump(content, f, default_flow_style=False, allow_unicode=True)
