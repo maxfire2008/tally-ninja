@@ -132,7 +132,7 @@ def import_results(file, athletes_directory, output, year):
                 }
 
                 # iterate through rows B7:F(INFINITY)
-                for row in range(6, sheet.shape[0]):
+                for row in range(5, sheet.shape[0]):
                     # C: Name, E: Result
                     # ***REMOVED***, 14s 600ms
                     name = sheet.iloc[row, 2]
@@ -195,7 +195,7 @@ def import_results(file, athletes_directory, output, year):
                 }
 
                 # iterate through rows B7:F(INFINITY)
-                for row in range(6, sheet.shape[0]):
+                for row in range(5, sheet.shape[0]):
                     name = sheet.iloc[row, 2]
                     name_split = name.split(" ")
                     result = sheet.iloc[row, 4]
@@ -229,12 +229,12 @@ def import_results(file, athletes_directory, output, year):
                             result_split_split = result_split.split(" ")
                             # ['1', '4m', '30']
                             try:
-                                current_result.append(
-                                    [
-                                        int(result_split_split[1][:-1]) * 1000
-                                        + int(result_split_split[2]) * 10
-                                    ]
+                                r = (
+                                    int(result_split_split[1][:-1]) * 1000
+                                    + int(result_split_split[2]) * 10
                                 )
+                                if r:
+                                    current_result.append(r)
                             except ValueError:
                                 pass
                     else:
@@ -267,7 +267,7 @@ def import_results(file, athletes_directory, output, year):
                 }
 
                 # iterate through rows B7:F(INFINITY)
-                for row in range(6, sheet.shape[0]):
+                for row in range(5, sheet.shape[0]):
                     name = sheet.iloc[row, 2]
                     name_split = name.split(" ")
                     result = sheet.iloc[row, 4]
@@ -294,12 +294,12 @@ def import_results(file, athletes_directory, output, year):
                         result_split_split = result_split.split(" ")
                         # ['1m', '20']
                         try:
-                            current_result.append(
-                                [
-                                    int(result_split_split[0][:-1]) * 1000
-                                    + int(result_split_split[1]) * 10
-                                ]
+                            r = (
+                                int(result_split_split[0][:-1]) * 1000
+                                + int(result_split_split[1]) * 10
                             )
+                            if r:
+                                current_result.append(r)
                         except ValueError:
                             pass
 
