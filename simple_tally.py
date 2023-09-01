@@ -107,7 +107,7 @@ def tally_data(data_folder):
     athletes_folder = data_folder / "athletes"
     leagues_folder = data_folder / "leagues"
     cache_folder = data_folder / "cache"
-    cache_folder.mkdir(parents=True, exist_ok=True)
+    cache_folder.mkdir(exist_ok=True)
 
     atheletes_hash_items = []
     leagues_hash_items = []
@@ -129,7 +129,7 @@ def tally_data(data_folder):
     for results_filename in results_folder.glob("**/*.yaml"):
         results = raceml.load(results_filename)
         # get md5 hash of results file
-        results_hash = hashlib.sha256(repr(results).encode()).hexdigest()
+        results_hash = hashlib.sha256(repr(results).encode()).hexdigest() + ".racecache"
         cache_file = cache_folder / results_hash
         if cache_file.exists():
             cached_content = raceml.load(cache_file)
