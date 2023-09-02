@@ -1,0 +1,10 @@
+exit
+
+rm -rf ~/sport-scorer
+rm -rf ~/sport-scorer-sample-data
+
+cd /mnt/c/Users/Max/Documents/GitHub/sport-scorer
+cp -r . ~/sport-scorer/
+cp -r ../sport-scorer-sample-data/ ~/sport-scorer-sample-data/
+
+cd ~/sport-scorer
