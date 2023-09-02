@@ -17,7 +17,7 @@ def import_students(file, output, year):
     if not isinstance(output, pathlib.Path):
         output = pathlib.Path(output).resolve()
         output.mkdir(parents=True, exist_ok=True)
-    with open(file) as f:
+    with open(file, encoding="utf-8") as f:
         reader = csv.DictReader(
             f,
             fieldnames=[
@@ -69,7 +69,7 @@ def import_students(file, output, year):
             while True:
                 if student_file.exists():
                     # check if identical
-                    with open(student_file) as f:
+                    with open(student_file, encoding="utf-8") as f:
                         existing_student = yaml.safe_load(f)
                         if existing_student == student_raceml:
                             break
@@ -90,7 +90,7 @@ def import_students(file, output, year):
                                 stem += "-1"
                             student_file = student_file.with_stem(stem)
                 else:
-                    with open(student_file, "w") as f:
+                    with open(student_file, "w", encoding="utf-8") as f:
                         yaml.dump(student_raceml, f)
                     break
 
@@ -107,7 +107,7 @@ def import_results(file, athletes_directory, output, year):
         results = pandas.read_excel(spreadsheet, sheet_name=None)
 
         # iterate through each sheet
-        for sheet_name, sheet in results.items():
+        for _, sheet in results.items():
             event_json = None
             # D4 is the cell containing the event name
             event_name = sheet.iloc[2, 3]
@@ -205,7 +205,7 @@ def import_results(file, athletes_directory, output, year):
                         + str(event_json["ystart"])
                         # + "*"
                     )
-                    athlete = simple_tally.lookup_athlete(filename, athletes_directory)
+                    simple_tally.lookup_athlete(filename, athletes_directory)
 
                     # 1 4m 60cm2 metersm centimeterscm3 metersm centimeterscm
                     # 1: 4600
@@ -306,6 +306,44 @@ def import_results(file, athletes_directory, output, year):
                             "results": current_result,
                         }
                     )
+            elif re.match(
+                r"^#[0-9]+ 4x100 metres relay Year ([7-9]|10) (fe)?male$",
+                event_name,
+            ):
+                event_name_split = event_name.split(" ")
+                event_number = event_name_split[0][1:]
+                event_year = event_name_split[5]
+                event_gender = event_name_split[6]
+
+                date_start = datetime.datetime(2023, 9, 2, 9, 0, 0)
+                date_start += datetime.timedelta(minutes=(int(event_number) - 1) * 10)
+                event_json = {
+                    "type": "race",
+                    "scoring_type": "most_points",
+                    "competitor_type": "team",
+                    "name": f"4x100m Track Relay Year {event_year} {event_gender}",
+                    "distance": event_distance + "m",
+                    "gender": event_gender,
+                    "ystart": year - int(event_year),
+                    "date": date_start.isoformat(),
+                    "results": [],
+                }
+
+                # iterate through rows B7:F(INFINITY)
+                for row in range(5, sheet.shape[0]):
+                    # C: Name, F: Points
+                    # Crayfish, 40
+
+                    name = sheet.iloc[row, 2]
+                    points = sheet.iloc[row, 5]
+
+                    event_json["results"].append(
+                        {
+                            "id": name,
+                            "points": points,
+                        }
+                    )
+
             if event_json:
                 # write file to output directory
                 event_file = (

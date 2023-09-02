@@ -87,7 +87,9 @@ def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
 _eligible_leagues_cache = {}
 
 
-def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
+def get_eligible_leagues(
+    athlete, results, leagues_folder: pathlib.Path, competitor_type: str = "individual"
+):
     """
     Returns a list of leagues that an athlete is eligible for
     based on their results and the leagues' eligibility criteria.
@@ -118,20 +120,26 @@ def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
 
         athlete_eligible = True
 
-        env = {
-            "event_distance": results.get("distance", None),
-            "athlete_age": calculate_age(athlete["dob"], results["date"]),
-            "athlete_gender": athlete["gender"],
-        }
-        interpreter = safeeval.SafeEval()
+        if competitor_type == "individual":
+            env = {
+                "event_distance": results.get("distance", None),
+                "athlete_age": calculate_age(athlete["dob"], results["date"]),
+                "athlete_gender": athlete["gender"],
+            }
+            interpreter = safeeval.SafeEval()
 
-        for criterion in league.get("eligibility", []):
-            ast = interpreter.compile(criterion)
-            result = interpreter.execute(ast, env)
-            # print(">>", athlete, criterion, result)
-            if not result:
-                athlete_eligible = False
-                break
+            for criterion in league.get("eligibility", []):
+                ast = interpreter.compile(criterion)
+                result = interpreter.execute(ast, env)
+                # print(">>", athlete, criterion, result)
+                if not result:
+                    athlete_eligible = False
+                    break
+        elif competitor_type == "team":
+            if league.get("team_league", False):
+                athlete_eligible = True
+            elif league.get("permit_teams", False):
+                athlete_eligible = True
 
         if athlete_eligible:
             eligible_leagues.append(league)
@@ -153,6 +161,86 @@ def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
 
     _eligible_leagues_cache[arg_key] = eligible_leagues
     return eligible_leagues
+
+
+def calculate_points(
+    athlete_result,
+    competitors,
+    scoring_settings,
+    chosen_league_id="Unknown",
+    results_type="Unknown",
+    results_name="Unknown",
+):
+    contrib_amount = None
+
+    if scoring_settings["method"] in ["minus_place"]:
+        # example results
+        # 1. 00:20:00
+        # 1. 00:20:00
+        # 2. 00:20:01
+        # 3. 00:20:02
+        # 4. 00:20:03
+        # 4. 00:20:03
+        # 5. 00:20:04
+        # 6. 00:20:05
+
+        # calculate place
+        if scoring_settings["sort_by"] == "lowest_finish_time":
+            unique_scores = set([c["finish_time"] for c in competitors])
+            my_score = athlete_result["finish_time"]
+            place = 0
+            for score in sorted(unique_scores):
+                if score < my_score:
+                    place += 1
+        elif scoring_settings["sort_by"] == "highest_max_result":
+            unique_scores = set(
+                [
+                    max(c["results"]) if c["results"] else float("inf")
+                    for c in competitors
+                ]
+            )
+            my_score = (
+                max(athlete_result["results"])
+                if athlete_result["results"]
+                else float("inf")
+            )
+            place = 0
+            for score in sorted(unique_scores, reverse=True):
+                if score > my_score:
+                    place += 1
+        elif scoring_settings["sort_by"] == "highest_points":
+            unique_scores = set(
+                [
+                    c["points"] if c["points"] is not None else float("inf")
+                    for c in competitors
+                ]
+            )
+            my_score = athlete_result["points"]
+            place = 0
+            for score in sorted(unique_scores, reverse=True):
+                if score > my_score:
+                    place += 1
+        else:
+            raise ValueError(
+                "No sort_by method found for league: "
+                + chosen_league_id
+                + " "
+                + results_type
+                + " "
+                + scoring_settings["sort_by"]
+            )
+
+        if scoring_settings["method"] == "minus_place":
+            contrib_amount = max(
+                scoring_settings["method_value"]
+                - (place * scoring_settings.get("method_decrement", 1)),
+                0,
+            )
+
+    if contrib_amount is None:
+        raise ValueError("No method found for league: " + chosen_league_id)
+
+    return contrib_amount
 
 
 def tally_data(data_folder):
@@ -191,7 +279,7 @@ def tally_data(data_folder):
         leagues_hash_items.append(item)
         with open(item, "rb") as file:
             leagues_hash_items.append(file.read())
-    for item in code_folder.glob("**/**"):
+    for item in code_folder.glob("*"):
         if not item.is_file():
             continue
         code_hash_items.append(item)
@@ -237,126 +325,137 @@ def tally_data(data_folder):
             "payload": {},
         }
 
-        for athlete_id in [r["id"] for r in results["results"]]:
-            try:
-                athlete = lookup_athlete(athlete_id, data_folder / "athletes")
-            except raceml.TemplateFileError:
-                continue
+        competitor_type = results.get("competitor_type", "individual")
 
-            eligible_leagues = get_eligible_leagues(
-                athlete, results, data_folder / "leagues"
-            )
+        if competitor_type == "individual":
+            for athlete_id in [r["id"] for r in results["results"]]:
+                try:
+                    athlete = lookup_athlete(athlete_id, data_folder / "athletes")
+                except raceml.TemplateFileError:
+                    continue
 
-            for chosen_league in eligible_leagues:
-                chosen_league_id = chosen_league["_filename"]
+                eligible_leagues = get_eligible_leagues(
+                    athlete, results, data_folder / "leagues"
+                )
 
-                if (
-                    chosen_league["scoring"][results["type"]]["contributes_to"]
-                    == "individual"
-                ):
-                    contributes_to = athlete_id
-                elif (
-                    chosen_league["scoring"][results["type"]]["contributes_to"]
-                    == "team"
-                ):
-                    contributes_to = athlete["team"]
-                else:
-                    raise ValueError(
-                        "No contributes_to method found for league: " + chosen_league_id
-                    )
+                for chosen_league in eligible_leagues:
+                    chosen_league_id = chosen_league["_filename"]
 
-                competitors = []
-
-                for potential_competitor_result in results["results"]:
-                    potential_competitor_id = potential_competitor_result["id"]
-                    try:
-                        potential_competitor = lookup_athlete(
-                            potential_competitor_id, data_folder / "athletes"
-                        )
-                    except raceml.TemplateFileError:
-                        continue
-                    if chosen_league in get_eligible_leagues(
-                        potential_competitor, results, data_folder / "leagues"
+                    if (
+                        chosen_league["scoring"][results["type"]]["contributes_to"]
+                        == "individual"
                     ):
-                        competitors.append(potential_competitor_result)
-
-                # get finish time
-                for result in results["results"]:
-                    if result["id"] == athlete_id:
-                        athlete_result = result
-                        break
-
-                scoring_settings = chosen_league["scoring"][results["type"]]
-
-                if chosen_league_id not in cached_content["payload"]:
-                    cached_content["payload"][chosen_league_id] = {}
-                if contributes_to not in cached_content["payload"][chosen_league_id]:
-                    cached_content["payload"][chosen_league_id][contributes_to] = None
-
-                if scoring_settings["method"] in ["minus_place"]:
-                    # example results
-                    # 1. 00:20:00
-                    # 1. 00:20:00
-                    # 2. 00:20:01
-                    # 3. 00:20:02
-                    # 4. 00:20:03
-                    # 4. 00:20:03
-                    # 5. 00:20:04
-                    # 6. 00:20:05
-
-                    # calculate place
-                    if scoring_settings["sort_by"] == "lowest_finish_time":
-                        unique_scores = set([c["finish_time"] for c in competitors])
-                        my_score = athlete_result["finish_time"]
-                        place = 1
-                        for score in sorted(unique_scores):
-                            if score < my_score:
-                                place += 1
-                    elif scoring_settings["sort_by"] == "highest_max_result":
-                        unique_scores = set(
-                            [
-                                max(c["results"]) if c["results"] else float("inf")
-                                for c in competitors
-                            ]
-                        )
-                        my_score = (
-                            max(athlete_result["results"])
-                            if athlete_result["results"]
-                            else float("inf")
-                        )
-                        place = 1
-                        for score in sorted(unique_scores, reverse=True):
-                            if score > my_score:
-                                place += 1
+                        contributes_to = athlete_id
+                    elif (
+                        chosen_league["scoring"][results["type"]]["contributes_to"]
+                        == "team"
+                    ):
+                        contributes_to = athlete["team"]
                     else:
                         raise ValueError(
-                            "No sort_by method found for league: "
+                            "No contributes_to method found for league: "
                             + chosen_league_id
-                            + " "
-                            + results["type"]
-                            + " "
-                            + scoring_settings["sort_by"]
                         )
 
-                    if scoring_settings["method"] == "minus_place":
-                        if not cached_content["payload"][chosen_league_id][
-                            contributes_to
-                        ]:
-                            cached_content["payload"][chosen_league_id][
-                                contributes_to
-                            ] = 0
-                        cached_content["payload"][chosen_league_id][
-                            contributes_to
-                        ] += max(
-                            scoring_settings["method_value"]
-                            - (place * scoring_settings.get("method_decrement", 1)),
-                            0,
-                        )
+                    competitors = []
 
-                if cached_content["payload"][chosen_league_id][contributes_to] is None:
-                    raise ValueError("No method found for league: " + chosen_league_id)
+                    for potential_competitor_result in results["results"]:
+                        potential_competitor_id = potential_competitor_result["id"]
+                        try:
+                            potential_competitor = lookup_athlete(
+                                potential_competitor_id, data_folder / "athletes"
+                            )
+                        except raceml.TemplateFileError:
+                            continue
+                        if chosen_league in get_eligible_leagues(
+                            potential_competitor, results, data_folder / "leagues"
+                        ):
+                            competitors.append(potential_competitor_result)
+
+                    # get finish time
+                    for result in results["results"]:
+                        if result["id"] == athlete_id:
+                            athlete_result = result
+                            break
+
+                    scoring_settings = chosen_league["scoring"][
+                        results.get("scoring_type", results.get("type"))
+                    ]
+
+                    if chosen_league_id not in cached_content["payload"]:
+                        cached_content["payload"][chosen_league_id] = {}
+                    if (
+                        contributes_to
+                        not in cached_content["payload"][chosen_league_id]
+                    ):
+                        cached_content["payload"][chosen_league_id][contributes_to] = 0
+
+                    cached_content["payload"][chosen_league_id][
+                        contributes_to
+                    ] += calculate_points(
+                        athlete_result,
+                        competitors,
+                        scoring_settings,
+                        chosen_league_id,
+                        results["type"],
+                        results["name"],
+                    )
+        elif competitor_type == "team":
+            for team_name in [r["id"] for r in results["results"]]:
+                eligible_leagues = get_eligible_leagues(
+                    team_name, results, data_folder / "leagues", competitor_type
+                )
+
+                for chosen_league in eligible_leagues:
+                    chosen_league_id = chosen_league["_filename"]
+
+                    contributes_to = athlete["team"]
+
+                    competitors = []
+
+                    for potential_competitor_result in results["results"]:
+                        potential_competitor_id = potential_competitor_result["id"]
+                        if chosen_league in get_eligible_leagues(
+                            potential_competitor,
+                            results,
+                            data_folder / "leagues",
+                            competitor_type,
+                        ):
+                            competitors.append(potential_competitor_result)
+
+                    # get finish time
+                    for result in results["results"]:
+                        if result["id"] == team_name:
+                            team_result = result
+                            break
+
+                    scoring_settings = chosen_league["scoring"][
+                        results.get("scoring_type", results.get("type"))
+                    ]
+
+                    if chosen_league_id not in cached_content["payload"]:
+                        cached_content["payload"][chosen_league_id] = {}
+                    if (
+                        contributes_to
+                        not in cached_content["payload"][chosen_league_id]
+                    ):
+                        cached_content["payload"][chosen_league_id][contributes_to] = 0
+
+                    cached_content["payload"][chosen_league_id][
+                        contributes_to
+                    ] += calculate_points(
+                        team_result,
+                        competitors,
+                        scoring_settings,
+                        chosen_league_id,
+                        results["type"],
+                        results["name"],
+                    )
+        else:
+            raise ValueError("Unknown competitor_type: " + competitor_type)
 
         raceml.dump(cache_file, cached_content)
+        print(results["name"], ":", cached_content["payload"])
         tally_board = raceml.deep_add(tally_board, cached_content["payload"])
     return tally_board
 
