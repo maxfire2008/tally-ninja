@@ -49,7 +49,13 @@ def deep_add(base, changes):
     return new
 
 
-def load(filepath, allow_template_only=False):
+_file_cache = {}
+
+
+def load(filepath, allow_template_only=False, cache=True):
+    arg_key = (filepath, allow_template_only)
+    if cache and arg_key in _file_cache:
+        return _file_cache[arg_key]
     # normalize filepath to filepath object
     if not isinstance(filepath, pathlib.Path):
         filepath = pathlib.Path(filepath).resolve()
@@ -74,7 +80,9 @@ def load(filepath, allow_template_only=False):
         data.pop("_include", None)
         include_data.pop("_template_only", None)
 
-        return deep_merge(include_data, data)
+        data = deep_merge(include_data, data)
+    if cache:
+        _file_cache[arg_key] = data
     return data
 
 

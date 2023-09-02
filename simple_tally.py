@@ -39,17 +39,31 @@ def calculate_age(born: datetime.date | str, today: datetime.date | str) -> int:
     return delta.days // 365
 
 
+_athlete_cache = {}
+
+
 def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
+    if (athletes_folder, athlete_id) in _athlete_cache:
+        return _athlete_cache[(athletes_folder, athlete_id)]
     athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + ".yaml"))
     if len(athlete_filenames) < 1:
         raise ValueError("Athlete not found: " + athlete_id)
     if len(athlete_filenames) > 1:
         raise ValueError("Multiple athletes found: " + athlete_id)
     athlete_filename = athlete_filenames[0]
-    return raceml.load(athlete_filename)
+    athlete_data = raceml.load(athlete_filename)
+    _athlete_cache[(athletes_folder, athlete_id)] = athlete_data
+    return athlete_data
+
+
+_eligible_leagues_cache = {}
 
 
 def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
+    arg_key = repr((athlete, results, leagues_folder))
+    if arg_key in _eligible_leagues_cache:
+        return _eligible_leagues_cache[arg_key]
+
     eligible_leagues = []
 
     for league_filename in leagues_folder.glob("**/*.yaml"):
@@ -93,6 +107,7 @@ def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
                 + str([l["_filepath"] for l in leagues_of_type])
             )
 
+    _eligible_leagues_cache[arg_key] = eligible_leagues
     return eligible_leagues
 
 
@@ -294,4 +309,6 @@ def tally_data(data_folder):
 
 
 if __name__ == "__main__":
+    start_time = datetime.datetime.now()
     pprint(tally_data(sys.argv[1]))
+    print("Time taken:", datetime.datetime.now() - start_time)
