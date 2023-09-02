@@ -236,6 +236,14 @@ def calculate_points(
                 - (place * scoring_settings.get("method_decrement", 1)),
                 0,
             )
+    elif scoring_settings["method"] == "bonus_points":
+        # results:
+        #   - id: Red
+        #     awards:
+        #       - name: 'ST Import'
+        #         points: 1044
+
+        contrib_amount = sum([a["points"] for a in athlete_result["awards"]])
 
     if contrib_amount is None:
         raise ValueError("No method found for league: " + chosen_league_id)
@@ -409,7 +417,7 @@ def tally_data(data_folder):
                 for chosen_league in eligible_leagues:
                     chosen_league_id = chosen_league["_filename"]
 
-                    contributes_to = athlete["team"]
+                    contributes_to = team_name
 
                     competitors = []
 

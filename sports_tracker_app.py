@@ -134,7 +134,7 @@ def import_results(file, athletes_directory, output, year):
                 # iterate through rows B7:F(INFINITY)
                 for row in range(5, sheet.shape[0]):
                     # C: Name, E: Result
-                    # ***REMOVED***, 14s 600ms
+                    # John Doe, 14s 600ms
                     name = sheet.iloc[row, 2]
                     name_split = name.split(" ")
                     result = sheet.iloc[row, 4]
