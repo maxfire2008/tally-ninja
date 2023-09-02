@@ -1,10 +1,25 @@
+"""
+This module provides functions to tally data for sports events.
+It includes functions to calculate age, lookup athlete data,
+get eligible leagues for an athlete, and cache results.
+
+Classes:
+    AttrDict: A dictionary with attribute access to keys.
+
+Functions:
+    calculate_age: Calculate age in years.
+    lookup_athlete: Lookup athlete data by ID.
+    get_eligible_leagues: Get eligible leagues for an athlete.
+    tally_data: Tally data for sports events.
+
+"""
 import hashlib
 import sys
-import raceml
 import pathlib
-import safeeval
-import datetime
 from pprint import pprint
+import datetime
+import safeeval
+import raceml
 
 
 class AttrDict:
@@ -16,8 +31,8 @@ class AttrDict:
     def __getattr__(self, key):
         try:
             return self._d[key]
-        except KeyError:
-            raise AttributeError(key)
+        except KeyError as error:
+            raise AttributeError(key) from error
 
 
 def calculate_age(born: datetime.date | str, today: datetime.date | str) -> int:
@@ -43,6 +58,19 @@ _athlete_cache = {}
 
 
 def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
+    """
+    Looks up an athlete's data by their ID.
+
+    Args:
+        athlete_id (str): The ID of the athlete to look up.
+        athletes_folder (pathlib.Path): The folder containing the YAML files for all athletes.
+
+    Returns:
+        dict: A dictionary containing the athlete's data.
+
+    Raises:
+        ValueError: If the athlete is not found or multiple athletes are found with the same ID.
+    """
     if (athletes_folder, athlete_id) in _athlete_cache:
         return _athlete_cache[(athletes_folder, athlete_id)]
     athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + ".yaml"))
@@ -60,6 +88,22 @@ _eligible_leagues_cache = {}
 
 
 def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
+    """
+    Returns a list of leagues that an athlete is eligible for
+    based on their results and the leagues' eligibility criteria.
+
+    Args:
+        athlete (dict): the athlete, including their date of birth and gender.
+        results (dict): the race results.
+        leagues_folder (pathlib.Path): the folder containing the leagues.
+
+    Returns:
+        A list of leagues' dictionaries.
+
+    Raises:
+        ValueError: If the athlete is eligible for multiple leagues of the same type.
+
+    """
     arg_key = repr((athlete, results, leagues_folder))
     if arg_key in _eligible_leagues_cache:
         return _eligible_leagues_cache[arg_key]
@@ -72,7 +116,7 @@ def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
         except raceml.TemplateFileError:
             continue
 
-        ATHLETE_ELIGIBLE = True
+        athlete_eligible = True
 
         env = {
             "event_distance": results.get("distance", None),
@@ -86,10 +130,10 @@ def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
             result = interpreter.execute(ast, env)
             # print(">>", athlete, criterion, result)
             if not result:
-                ATHLETE_ELIGIBLE = False
+                athlete_eligible = False
                 break
 
-        if ATHLETE_ELIGIBLE:
+        if athlete_eligible:
             eligible_leagues.append(league)
 
     league_types = set([l["league_type"] for l in eligible_leagues])
@@ -112,6 +156,15 @@ def get_eligible_leagues(athlete, results, leagues_folder: pathlib.Path):
 
 
 def tally_data(data_folder):
+    """
+    Tally the results of a race.
+
+    Args:
+    - data_folder: A string representing the path to the folder containing the race data.
+
+    Returns:
+    - A dictionary representing the tally board of the race results.
+    """
     if not isinstance(data_folder, pathlib.Path):
         data_folder = pathlib.Path(data_folder)
 
@@ -126,27 +179,27 @@ def tally_data(data_folder):
 
     code_folder = pathlib.Path(__file__).parent
 
-    atheletes_hash_items = []
+    athletes_hash_items = []
     leagues_hash_items = []
     code_hash_items = []
 
     for item in athletes_folder.glob("**/*.yaml"):
-        atheletes_hash_items.append(item)
-        with open(item, "rb") as f:
-            atheletes_hash_items.append(f.read())
+        athletes_hash_items.append(item)
+        with open(item, "rb") as file:
+            athletes_hash_items.append(file.read())
     for item in leagues_folder.glob("**/*.yaml"):
         leagues_hash_items.append(item)
-        with open(item, "rb") as f:
-            leagues_hash_items.append(f.read())
+        with open(item, "rb") as file:
+            leagues_hash_items.append(file.read())
     for item in code_folder.glob("**/**"):
         if not item.is_file():
             continue
         code_hash_items.append(item)
-        with open(item, "rb") as f:
-            code_hash_items.append(f.read())
+        with open(item, "rb") as file:
+            code_hash_items.append(file.read())
 
     athletes_folder_hash = hashlib.sha256(
-        repr(atheletes_hash_items).encode()
+        repr(athletes_hash_items).encode()
     ).hexdigest()
     leagues_folder_hash = hashlib.sha256(repr(leagues_hash_items).encode()).hexdigest()
     code_folder_hash = hashlib.sha256(repr(code_hash_items).encode()).hexdigest()
