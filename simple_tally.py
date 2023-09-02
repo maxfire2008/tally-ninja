@@ -213,7 +213,7 @@ def tally_data(data_folder):
             ).hexdigest()
             + ".racecache"
         )
-        print(results_filename, results_hash)
+
         cache_file = cache_folder / results_hash
         if cache_file.exists():
             cached_content = raceml.load(cache_file)
