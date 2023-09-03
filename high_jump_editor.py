@@ -1,9 +1,14 @@
+import inspect
+from pprint import pprint
 import tkinter
 import tkinter.filedialog
 import pathlib
 import platform
 import os
 import yaml
+import sys
+
+sys.setrecursionlimit(50)
 
 
 class Config:
@@ -52,7 +57,210 @@ class Config:
         return self._load().get(key, default)
 
 
+CURRENT_FILE = None
+
+
+def main_menu(config, root):
+    results_folder = pathlib.Path(config["folder"]) / "results"
+
+    # print current recursion depth of current function (not the overall limit)
+    print(len(inspect.getouterframes(inspect.currentframe())))
+
+    # show the items in the folder in a listbox
+    listbox = tkinter.Listbox(root)
+    listbox.pack(fill=tkinter.BOTH, expand=True)
+    for item in results_folder.glob("**/*.yaml"):
+        # remove the results folder from the path
+        item_rel = item.relative_to(results_folder)
+        listbox.insert(tkinter.END, item_rel)
+
+    def double_click(event):
+        # get the selected item
+        selection = event.widget.curselection()
+        if selection:
+            item = event.widget.get(selection[0])
+            for widget in root.winfo_children():
+                widget.destroy()
+            open_results(results_folder / item, config, root)
+
+    listbox.bind("<Double-Button-1>", double_click)
+    listbox.bind("<Return>", double_click)
+    # handle arrow keys
+    listbox.bind("<Up>", lambda event: event.widget.select_clear(0, tkinter.END))
+    listbox.bind("<Down>", lambda event: event.widget.select_clear(0, tkinter.END))
+
+    # focus the listbox
+    listbox.focus_set()
+
+
+def open_high_jump(results_file, config, root):
+    global CURRENT_FILE
+    CURRENT_FILE = {
+        "file": results_file,
+        "unsaved_changes": False,
+        "save_command": None,
+    }
+
+    # load the event
+    with open(results_file, "r", encoding="utf-8") as f:
+        CURRENT_FILE["content"] = yaml.safe_load(f)
+        # - id: clive_palmer
+        #   heights:
+        #   - height: 1200
+        #     attempt: null
+        #   - height: 1250
+        #     attempt: null
+        #   - height: 1350
+        #     attempt: null
+        #   - height: 1400
+        #     attempt: null
+
+    # create a grid of labels and inputs
+    grid = tkinter.Frame(root)
+    grid.pack(fill=tkinter.BOTH, expand=True)
+
+    # create a list of the heights
+    heights = []
+    for result in CURRENT_FILE["content"]["results"]:
+        for height in result["heights"]:
+            if height["height"] not in heights:
+                heights.append(height["height"])
+
+    # sort the heights
+    heights.sort()
+
+    # add a top row for the headings (name, *heights)
+    tkinter.Label(grid, text="Name").grid(row=0, column=0)
+    for i, height in enumerate(heights):
+        tkinter.Label(grid, text=height).grid(row=0, column=i + 2)
+
+    # add rows for each result
+    for i, result in enumerate(CURRENT_FILE["content"]["results"]):
+        tkinter.Label(grid, text=result["id"]).grid(row=i + 1, column=0)
+        for j, height in enumerate(result["heights"]):
+
+            def make_boxes(athlete_id, height, attempts, row_index=i, col_index=j):
+                def label_text(attempts):
+                    if attempts is not None and attempts > 0:
+                        text = "❌" * (attempts - 1) + "✅"
+                    else:
+                        text = "⚪"
+                    # pad the text to 3 characters
+                    return text.ljust(3, "⚪")
+
+                def get_indices(athlete_id, target_height):
+                    for result_index, result in enumerate(
+                        CURRENT_FILE["content"]["results"]
+                    ):
+                        if result["id"] == athlete_id:
+                            for height_index, height in enumerate(result["heights"]):
+                                if height["height"] == target_height:
+                                    return result_index, height_index
+                    return None, None
+
+                def set_attempt(athlete_id, height, attempt):
+                    result_index, height_index = get_indices(athlete_id, height)
+                    CURRENT_FILE["content"]["results"][result_index]["heights"][
+                        height_index
+                    ]["attempt"] = attempt
+
+                def get_attempt(athlete_id, height):
+                    result_index, height_index = get_indices(athlete_id, height)
+                    return CURRENT_FILE["content"]["results"][result_index]["heights"][
+                        height_index
+                    ]["attempt"]
+
+                def adjust_attempt(athlete_id, height, adjustment, label):
+                    attempt = get_attempt(athlete_id, height)
+                    if attempt is None:
+                        attempt = 0
+                    attempt += adjustment
+                    if attempt > 3:
+                        attempt = 3
+                    if attempt <= 0:
+                        attempt = None
+                    set_attempt(athlete_id, height, attempt)
+                    label.config(text=label_text(attempt))
+
+                # create label and plus, minus, clear buttons
+                frame = tkinter.Frame(grid)
+                frame.grid(row=row_index + 1, column=col_index + 2)
+
+                label = tkinter.Label(
+                    frame,
+                    text=label_text(attempts),
+                    font=("Courier", 8),
+                    takefocus=True,
+                    border=5,
+                    relief="flat",
+                )
+                label.pack(side=tkinter.LEFT)
+                label.bind(
+                    "<FocusIn>",
+                    lambda event: event.widget.config(
+                        relief="sunken", background="lightblue"
+                    ),
+                )
+                label.bind(
+                    "<FocusOut>",
+                    lambda event: event.widget.config(
+                        relief="flat", background="SystemButtonFace"
+                    ),
+                )
+                label.bind(
+                    "<Left>",
+                    lambda event: adjust_attempt(athlete_id, height, -1, label),
+                )
+                label.bind(
+                    "<Right>",
+                    lambda event: adjust_attempt(athlete_id, height, 1, label),
+                )
+                # label.bind(
+                #     "<Return>",  # move focus to the first label in the next row
+                #     lambda event: event.widget.master.master.grid_slaves(
+                #         row=row_index + 2, column=2
+                #     )[0].configure(background="red"),
+                # )
+                # label.bind(
+                #     "<Shift-Return>",  # move focus to the first label in the previous row
+                #     lambda event: event.widget.master.master.grid_slaves(
+                #         row=row_index, column=0
+                #     )[0].focus_set(),
+                # )
+
+                label.pack(side=tkinter.LEFT)
+                tkinter.Button(
+                    frame,
+                    text="+",
+                    command=lambda: adjust_attempt(athlete_id, height, 1, label),
+                    takefocus=False,
+                ).pack(side=tkinter.LEFT)
+                tkinter.Button(
+                    frame,
+                    text="-",
+                    command=lambda: adjust_attempt(athlete_id, height, -1, label),
+                    takefocus=False,
+                ).pack(side=tkinter.LEFT)
+
+            make_boxes(result["id"], height["height"], height["attempt"])
+
+
+def open_results(results_file, config, root):
+    # load the event
+    with open(results_file, "r", encoding="utf-8") as f:
+        results = yaml.safe_load(f)
+
+    if results["type"] == "high_jump":
+        open_high_jump(results_file, config, root)
+    else:
+        tkinter.messagebox.showerror(
+            "Invalid Event Type", "The event type is not supported."
+        )
+        main_menu(config, root)
+
+
 def main():
+    global CURRENT_FILE
     if platform.system() == "Windows":
         config_dir = (
             pathlib.Path(os.getenv("APPDATA"))
@@ -82,7 +290,60 @@ def main():
     config = Config(config_file)
 
     root = tkinter.Tk()
-    root.withdraw()
+    root.title("High Jump Editor")
+    root.geometry("800x600")
+    root.resizable(True, True)
+
+    # add file menu
+    menu = tkinter.Menu(root)
+    root.config(menu=menu)
+    file_menu = tkinter.Menu(menu)
+    menu.add_cascade(label="File", menu=file_menu)
+
+    def open_folder(event):
+        folder = tkinter.filedialog.askdirectory()
+        if folder:
+            config["folder"] = folder
+        main_menu(config, root)
+
+    file_menu.add_command(label="Open Database", command=open_folder)
+    root.bind("<Control-o>", lambda event: open_folder())
+
+    def main_menu_event(event):
+        if CURRENT_FILE:
+            if CURRENT_FILE.get("unsaved_changes"):
+                if not tkinter.messagebox.askyesno(
+                    "Unsaved Changes",
+                    "You have unsaved changes. Are you sure you want to return to the main menu?",
+                ):
+                    return
+        for widget in root.winfo_children():
+            widget.destroy()
+        CURRENT_FILE = None
+        main_menu(config, root)
+
+    file_menu.add_command(label="Main Menu", command=main_menu_event)
+    root.bind("<Control-m>", main_menu_event)
+
+    def save_menu_item(event):
+        if CURRENT_FILE:
+            CURRENT_FILE.get("save_command")()
+
+    file_menu.add_command(label="Save", command=save_menu_item)
+    root.bind("<Control-s>", save_menu_item)
+
+    def debug_content(event):
+        print("==DEBUG==")
+        pprint(CURRENT_FILE)
+
+    file_menu.add_command(label="Debug", command=debug_content)
+    root.bind("<Control-d>", debug_content)
+
+    if "folder" in config:
+        main_menu(config, root)
+
+    # main loop
+    root.mainloop()
 
 
 if __name__ == "__main__":
