@@ -138,6 +138,7 @@ def import_results(file, athletes_directory, output, year):
                     name = sheet.iloc[row, 2]
                     name_split = name.split(" ")
                     result = sheet.iloc[row, 4]
+                    points = sheet.iloc[row, 5]
                     filename = (
                         "-".join(name_split[0:2]).lower()
                         + "-"
@@ -164,12 +165,18 @@ def import_results(file, athletes_directory, output, year):
                     else:
                         print(f"Invalid result: {result}")
 
-                    event_json["results"].append(
-                        {
-                            "id": filename,
-                            "finish_time": result_in_seconds,
-                        }
-                    )
+                    current_result_json = {
+                        "id": filename,
+                        "finish_time": result_in_seconds,
+                    }
+                    try:
+                        int(points)
+                    except ValueError:
+                        if points in ["DQ", "DNF"]:
+                            current_result_json[points] = True
+                        else:
+                            raise ValueError(f"Invalid points: {points}")
+                    event_json["results"].append(current_result_json)
             elif re.match(
                 r"^#[0-9]+ (Long jump|Javelin throw|Triple jump|Shot put|Discus throw) Year ([7-9]|10) (fe)?male$",
                 event_name,
@@ -181,7 +188,7 @@ def import_results(file, athletes_directory, output, year):
                     event_gender = event_name_split[5]
                     event_type = event_name_split[1:3]
                 else:
-                    continue
+                    raise ValueError(f"Invalid event name: {event_name}")
                 date_start = datetime.datetime(2023, 9, 2, 9, 0, 0)
                 date_start += datetime.timedelta(minutes=(int(event_number) - 1) * 10)
                 event_json = {
@@ -199,6 +206,8 @@ def import_results(file, athletes_directory, output, year):
                     name = sheet.iloc[row, 2]
                     name_split = name.split(" ")
                     result = sheet.iloc[row, 4]
+                    points = sheet.iloc[row, 5]
+
                     filename = (
                         "-".join(name_split[0:2]).lower()
                         + "-"
@@ -240,12 +249,18 @@ def import_results(file, athletes_directory, output, year):
                     else:
                         print(f"Invalid result: {result}")
 
-                    event_json["results"].append(
-                        {
-                            "id": filename,
-                            "results": current_result,
-                        }
-                    )
+                    current_result_json = {
+                        "id": filename,
+                        "distances": current_result,
+                    }
+                    try:
+                        int(points)
+                    except ValueError as error:
+                        if points in ["DQ", "DNF"]:
+                            current_result_json[points] = True
+                        else:
+                            raise ValueError(f"Invalid points: {points}") from error
+                    event_json["results"].append(current_result_json)
             elif re.match(
                 r"^#[0-9]+ High jump Year ([7-9]|10) (fe)?male$",
                 event_name,
@@ -271,6 +286,8 @@ def import_results(file, athletes_directory, output, year):
                     name = sheet.iloc[row, 2]
                     name_split = name.split(" ")
                     result = sheet.iloc[row, 4]
+                    points = sheet.iloc[row, 5]
+
                     filename = (
                         "-".join(name_split[0:2]).lower()
                         + "-"
@@ -296,16 +313,22 @@ def import_results(file, athletes_directory, output, year):
                                 + int(result_split_split[1]) * 10
                             )
                             if r:
-                                current_result.append(r)
+                                current_result.append({"height": r, "attempt": None})
                         except ValueError:
                             pass
 
-                    event_json["results"].append(
-                        {
-                            "id": filename,
-                            "results": current_result,
-                        }
-                    )
+                    current_result_json = {
+                        "id": filename,
+                        "heights": current_result,
+                    }
+                    try:
+                        int(points)
+                    except ValueError as error:
+                        if points in ["DQ", "DNF"]:
+                            current_result_json[points] = True
+                        else:
+                            raise ValueError(f"Invalid points: {points}") from error
+                    event_json["results"].append(current_result_json)
             elif re.match(
                 r"^#[0-9]+ 4x100 metres relay Year ([7-9]|10) (fe)?male$",
                 event_name,
@@ -337,12 +360,23 @@ def import_results(file, athletes_directory, output, year):
                     name = sheet.iloc[row, 2]
                     points = sheet.iloc[row, 5]
 
-                    event_json["results"].append(
-                        {
-                            "id": name,
-                            "points": points,
-                        }
-                    )
+                    try:
+                        points = int(points)
+                    except ValueError:
+                        points = 0
+
+                    current_result_json = {
+                        "id": name,
+                        "points": points,
+                    }
+                    try:
+                        int(points)
+                    except ValueError:
+                        if points in ["DQ", "DNF"]:
+                            current_result_json[points] = True
+                        else:
+                            raise ValueError(f"Invalid points: {points}")
+                    event_json["results"].append(current_result_json)
 
             if event_json:
                 # write file to output directory
@@ -358,6 +392,11 @@ def import_results(file, athletes_directory, output, year):
                             if existing_event == event_json:
                                 break
                             else:
+                                if event_json.get("type") == "high_jump":
+                                    print(
+                                        f"Event {event_json['name']} already exists but is different, not duplicating because high jump is not supported"
+                                    )
+                                    break
                                 print(
                                     f"Event {event_json['name']} already exists but is different"
                                 )
@@ -376,6 +415,10 @@ def import_results(file, athletes_directory, output, year):
                     else:
                         with open(event_file, "w", encoding="utf-8") as f:
                             yaml.dump(event_json, f, sort_keys=False)
+                        if event_json.get("type") == "high_jump":
+                            print(
+                                f"Event {event_json['name']} was created but does not have any results, because high jump is not supported"
+                            )
                         break
             else:
                 print(

@@ -54,6 +54,28 @@ def calculate_age(born: datetime.date | str, today: datetime.date | str) -> int:
     return delta.days // 365
 
 
+def number(x) -> int | float:
+    """Returns an int or a float of x, if not a number raises ValueError.
+
+    Keyword arguments:
+    x -- the value to convert to a number
+    Returns: int or float
+    """
+
+    if isinstance(x, float):
+        if x.is_integer():
+            return int(x)
+        else:
+            return x
+    elif isinstance(x, int):
+        return x
+    else:
+        try:
+            return int(x)
+        except ValueError:
+            return float(x)
+
+
 _athlete_cache = {}
 
 
@@ -185,39 +207,69 @@ def calculate_points(
         # 6. 00:20:05
 
         # calculate place
-        if scoring_settings["sort_by"] == "lowest_finish_time":
-            unique_scores = set([c["finish_time"] for c in competitors])
-            my_score = athlete_result["finish_time"]
-            place = 0
-            for score in sorted(unique_scores):
-                if score < my_score:
-                    place += 1
-        elif scoring_settings["sort_by"] == "highest_max_result":
+
+        if scoring_settings.get("combine_method") == "max":
             unique_scores = set(
                 [
-                    max(c["results"]) if c["results"] else float("inf")
+                    max(c[scoring_settings["sort_key"]])
+                    if c[scoring_settings["sort_key"]]
+                    and not (c.get("DNF", False) or c.get("DNS", False))
+                    else (
+                        float("inf")
+                        if scoring_settings["sort_by"] == "lowest"
+                        else float("-inf")
+                    )
                     for c in competitors
                 ]
             )
             my_score = (
-                max(athlete_result["results"])
-                if athlete_result["results"]
-                else float("inf")
+                max(athlete_result[scoring_settings["sort_key"]])
+                if athlete_result[scoring_settings["sort_key"]]
+                and not (
+                    athlete_result.get("DNF", False) or athlete_result.get("DNS", False)
+                )
+                else (
+                    float("inf")
+                    if scoring_settings["sort_by"] == "lowest"
+                    else float("-inf")
+                )
             )
-            place = 0
-            for score in sorted(unique_scores, reverse=True):
-                if score > my_score:
-                    place += 1
-        elif scoring_settings["sort_by"] == "highest_points":
+        else:
             unique_scores = set(
                 [
-                    c["points"] if c["points"] is not None else float("inf")
+                    c[scoring_settings["sort_key"]]
+                    if not (c.get("DNF", False) or c.get("DNS", False))
+                    else (
+                        float("inf")
+                        if scoring_settings["sort_by"] == "lowest"
+                        else float("-inf")
+                    )
                     for c in competitors
                 ]
             )
-            my_score = athlete_result["points"]
+            my_score = (
+                athlete_result[scoring_settings["sort_key"]]
+                if not (
+                    athlete_result.get("DNF", False) or athlete_result.get("DNS", False)
+                )
+                else (
+                    float("inf")
+                    if scoring_settings["sort_by"] == "lowest"
+                    else float("-inf")
+                )
+            )
+            for unique_score in unique_scores:
+                unique_score = number(unique_score)
+            my_score = number(my_score)
+
+        if scoring_settings["sort_by"] == "lowest":
             place = 0
-            for score in sorted(unique_scores, reverse=True):
+            for score in unique_scores:
+                if score < my_score:
+                    place += 1
+        elif scoring_settings["sort_by"] == "highest":
+            place = 0
+            for score in unique_scores:
                 if score > my_score:
                     place += 1
         else:
@@ -247,6 +299,11 @@ def calculate_points(
 
     if contrib_amount is None:
         raise ValueError("No method found for league: " + chosen_league_id)
+
+    if athlete_result.get("DNF", False) or athlete_result.get("DQ", False):
+        contrib_amount = 0
+
+    print(results_name, athlete_result, contrib_amount)
 
     return contrib_amount
 
@@ -424,7 +481,7 @@ def tally_data(data_folder):
                     for potential_competitor_result in results["results"]:
                         potential_competitor_id = potential_competitor_result["id"]
                         if chosen_league in get_eligible_leagues(
-                            potential_competitor,
+                            potential_competitor_id,
                             results,
                             data_folder / "leagues",
                             competitor_type,
