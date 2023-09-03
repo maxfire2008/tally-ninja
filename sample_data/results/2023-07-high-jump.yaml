@@ -1,45 +1,54 @@
 type: high_jump
 name: High jump
-
 date: '2023-09-03T02:50:00'
+
 results:
-- id: donald_trump
-  heights:
-  - height: 1200
-    attempt: null
-  - height: 1250
-    attempt: null
-  - height: 1350
-    attempt: null
-  - height: 1400
-    attempt: null
-- id: clive_palmer
-  heights:
-  - height: 1200
-    attempt: null
-  - height: 1250
-    attempt: null
-  - height: 1350
-    attempt: null
-  - height: 1400
-    attempt: null
-- id: george_bush
-  heights:
-  - height: 1200
-    attempt: null
-  - height: 1250
-    attempt: null
-  - height: 1350
-    attempt: null
-  - height: 1400
-    attempt: null
-- id: hillary_clinton
-  heights:
-  - height: 1200
-    attempt: null
-  - height: 1250
-    attempt: null
-  - height: 1350
-    attempt: null
-  - height: 1400
-    attempt: null
+- heights:
+  - attempts:
+    - false
+    - true
+    height: 1200
+  - attempts:
+    - false
+    - true
+    height: 1250
+  - attempts:
+    - false
+    - true
+    height: 1350
+  - attempts:
+    - false
+    - false
+    - true
+    height: 1400
+  id: donald_trump
+- heights:
+  - attempts: []
+    height: 1200
+  - attempts: []
+    height: 1250
+  - attempts: []
+    height: 1350
+  - attempts: []
+    height: 1400
+  id: clive_palmer
+- heights:
+  - attempts: []
+    height: 1200
+  - attempts: []
+    height: 1250
+  - attempts: []
+    height: 1350
+  - attempts: []
+    height: 1400
+  id: george_bush
+- heights:
+  - attempts: []
+    height: 1200
+  - attempts: []
+    height: 1250
+  - attempts: []
+    height: 1350
+  - attempts: []
+    height: 1400
+  id: hillary_clinton

@@ -313,7 +313,7 @@ def import_results(file, athletes_directory, output, year):
                                 + int(result_split_split[1]) * 10
                             )
                             if r:
-                                current_result.append({"height": r, "attempt": None})
+                                current_result.append({"height": r, "attempts": []})
                         except ValueError:
                             pass
 
