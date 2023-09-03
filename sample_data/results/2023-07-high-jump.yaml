@@ -1,0 +1,45 @@
+type: high_jump
+name: High jump
+
+date: '2023-09-03T02:50:00'
+results:
+- id: donald_trump
+  heights:
+  - height: 1200
+    attempt: null
+  - height: 1250
+    attempt: null
+  - height: 1350
+    attempt: null
+  - height: 1400
+    attempt: null
+- id: clive_palmer
+  heights:
+  - height: 1200
+    attempt: null
+  - height: 1250
+    attempt: null
+  - height: 1350
+    attempt: null
+  - height: 1400
+    attempt: null
+- id: george_bush
+  heights:
+  - height: 1200
+    attempt: null
+  - height: 1250
+    attempt: null
+  - height: 1350
+    attempt: null
+  - height: 1400
+    attempt: null
+- id: hillary_clinton
+  heights:
+  - height: 1200
+    attempt: null
+  - height: 1250
+    attempt: null
+  - height: 1350
+    attempt: null
+  - height: 1400
+    attempt: null
