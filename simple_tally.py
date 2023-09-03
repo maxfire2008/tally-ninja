@@ -14,6 +14,7 @@ Functions:
 
 """
 import hashlib
+import json
 import sys
 import pathlib
 from pprint import pprint
@@ -206,72 +207,127 @@ def calculate_points(
         # 5. 00:20:04
         # 6. 00:20:05
 
-        # calculate place
+        if scoring_settings["sort_by"] in [
+            "highest",
+            "lowest",
+        ]:
+            # calculate place
 
-        if scoring_settings.get("combine_method") == "max":
-            unique_scores = set(
-                [
-                    max(c[scoring_settings["sort_key"]])
-                    if c[scoring_settings["sort_key"]]
-                    and not (c.get("DNF", False) or c.get("DNS", False))
+            if scoring_settings.get("combine_method") == "max":
+                unique_scores = set(
+                    [
+                        max(c[scoring_settings["sort_key"]])
+                        if c[scoring_settings["sort_key"]]
+                        and not (c.get("DNF", False) or c.get("DNS", False))
+                        else (
+                            float("inf")
+                            if scoring_settings["sort_by"] == "lowest"
+                            else float("-inf")
+                        )
+                        for c in competitors
+                    ]
+                )
+                my_score = (
+                    max(athlete_result[scoring_settings["sort_key"]])
+                    if athlete_result[scoring_settings["sort_key"]]
+                    and not (
+                        athlete_result.get("DNF", False)
+                        or athlete_result.get("DNS", False)
+                    )
                     else (
                         float("inf")
                         if scoring_settings["sort_by"] == "lowest"
                         else float("-inf")
                     )
-                    for c in competitors
-                ]
-            )
-            my_score = (
-                max(athlete_result[scoring_settings["sort_key"]])
-                if athlete_result[scoring_settings["sort_key"]]
-                and not (
-                    athlete_result.get("DNF", False) or athlete_result.get("DNS", False)
                 )
-                else (
-                    float("inf")
-                    if scoring_settings["sort_by"] == "lowest"
-                    else float("-inf")
+            else:
+                unique_scores = set(
+                    [
+                        c[scoring_settings["sort_key"]]
+                        if not (c.get("DNF", False) or c.get("DNS", False))
+                        else (
+                            float("inf")
+                            if scoring_settings["sort_by"] == "lowest"
+                            else float("-inf")
+                        )
+                        for c in competitors
+                    ]
                 )
-            )
-        else:
-            unique_scores = set(
-                [
-                    c[scoring_settings["sort_key"]]
-                    if not (c.get("DNF", False) or c.get("DNS", False))
+                my_score = (
+                    athlete_result[scoring_settings["sort_key"]]
+                    if not (
+                        athlete_result.get("DNF", False)
+                        or athlete_result.get("DNS", False)
+                    )
                     else (
                         float("inf")
                         if scoring_settings["sort_by"] == "lowest"
                         else float("-inf")
                     )
-                    for c in competitors
-                ]
-            )
-            my_score = (
-                athlete_result[scoring_settings["sort_key"]]
-                if not (
-                    athlete_result.get("DNF", False) or athlete_result.get("DNS", False)
                 )
-                else (
-                    float("inf")
-                    if scoring_settings["sort_by"] == "lowest"
-                    else float("-inf")
-                )
-            )
-            for unique_score in unique_scores:
-                unique_score = number(unique_score)
-            my_score = number(my_score)
+                for unique_score in unique_scores:
+                    unique_score = number(unique_score)
+                my_score = number(my_score)
 
-        if scoring_settings["sort_by"] == "lowest":
+            if scoring_settings["sort_by"] == "lowest":
+                place = 0
+                for score in unique_scores:
+                    if score < my_score:
+                        place += 1
+            elif scoring_settings["sort_by"] == "highest":
+                place = 0
+                for score in unique_scores:
+                    if score > my_score:
+                        place += 1
+            else:
+                raise ValueError(
+                    "No sort_by method found for league: "
+                    + chosen_league_id
+                    + " "
+                    + results_type
+                    + " "
+                    + scoring_settings["sort_by"]
+                )
+        elif scoring_settings["sort_by"] == "high_jump":
             place = 0
-            for score in unique_scores:
-                if score < my_score:
+            unique_scores = set([json.dumps(c["heights"]) for c in competitors])
+            my_score = athlete_result["heights"]
+
+            my_score_best = None
+            for hts in my_score:
+                if my_score_best is None or (
+                    hts["height"] > my_score_best["height"] and True in hts["attempts"]
+                ):
+                    my_score_best = hts
+
+            for score in [json.loads(s) for s in unique_scores]:
+                their_score_best = None
+                for hts in score:
+                    if their_score_best is None or (
+                        hts["height"] > their_score_best["height"]
+                        and True in hts["attempts"]
+                    ):
+                        their_score_best = hts
+
+                if their_score_best["height"] > my_score_best["height"]:
                     place += 1
-        elif scoring_settings["sort_by"] == "highest":
-            place = 0
-            for score in unique_scores:
-                if score > my_score:
-                    place += 1
+                elif their_score_best["height"] == my_score_best["height"]:
+                    if their_score_best["attempts"].count(False) < my_score_best[
+                        "attempts"
+                    ].count(False):
+                        place += 1
+                    elif their_score_best["attempts"].count(False) == my_score_best[
+                        "attempts"
+                    ].count(False):
+                        if their_score_best == my_score_best:
+                            pass
+                        else:
+                            raise ValueError(
+                                "Tie in high jump (known bug): "
+                                + str(their_score_best)
+                                + " "
+                                + str(my_score_best)
+                            )
         else:
             raise ValueError(
                 "No sort_by method found for league: "
