@@ -164,7 +164,7 @@ def open_high_jump(results_file, config, root):
     # add rows for each result
     for i, result in enumerate(CURRENT_FILE["internal_content"]["results"]):
         tkinter.Label(grid, text=result["id"]).grid(row=i + 1, column=0)
-        for j, height in enumerate(result["heights"]):
+        for height_all in heights:
 
             def make_boxes(athlete_id, height, attempts, row_index=i, col_index=j):
                 def label_text(attempts):
@@ -279,6 +279,18 @@ def open_high_jump(results_file, config, root):
                     takefocus=False,
                 ).pack(side=tkinter.LEFT)
 
+            try:
+                j = [x["height"] for x in result["heights"]].index(height_all)
+                height = result["heights"][j]
+            except ValueError:
+                j = len(result["heights"])
+                height = {
+                    "height": height_all,
+                    "attempt": None,
+                    "attempt_original": None,
+                }
+                result["heights"].append(height)
+                CURRENT_FILE["internal_content"]["results"][i]["heights"].append(height)
             make_boxes(result["id"], height["height"], height["attempt"])
 
 
