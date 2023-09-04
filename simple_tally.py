@@ -293,32 +293,35 @@ def calculate_points(
             unique_scores = set(
                 [
                     json.dumps(
-                        c["heights"]
-                        if not (c.get("DNF", False) or c.get("DNS", False))
-                        else []
+                        v if not (v.get("DNF", False) or v.get("DNS", False)) else []
                     )
-                    for c in competitors
+                    for v in competitors
                 ]
             )
-            my_score = athlete_result["heights"]
+            my_score = athlete_result
 
             my_score_best = None
-            for hts in my_score:
+            for ht, at in my_score.items():
                 if my_score_best is None or (
-                    hts["height"] > my_score_best["height"] and True in hts["attempts"]
+                    ht > my_score_best["height"] and True in at
                 ):
-                    my_score_best = hts
+                    my_score_best = {
+                        "height": ht,
+                        "attempts": at,
+                    }
 
             for score in [json.loads(s) for s in unique_scores]:
                 their_score_best = None
-                for hts in score:
+                for ht, at in score.items():
                     if their_score_best is None or (
-                        hts["height"] > their_score_best["height"]
-                        and True in hts["attempts"]
+                        ht > their_score_best["height"] and True in at
                     ):
-                        their_score_best = hts
+                        their_score_best = {
+                            "height": ht,
+                            "attempts": at,
+                        }
 
-                if their_score_best["height"] > my_score_best["height"]:
+                if number(their_score_best["height"]) > number(my_score_best["height"]):
                     place += 1
                 elif their_score_best["height"] == my_score_best["height"]:
                     if their_score_best["attempts"].count(False) < my_score_best[
@@ -474,7 +477,7 @@ def tally_data(data_folder):
         competitor_type = results.get("competitor_type", "individual")
 
         if competitor_type == "individual":
-            for athlete_id in results["results"]:
+            for athlete_id, athlete_result in results["results"].items():
                 try:
                     athlete = lookup_athlete(athlete_id, data_folder / "athletes")
                 except raceml.TemplateFileError:
@@ -484,7 +487,7 @@ def tally_data(data_folder):
                     athlete, results, data_folder / "leagues"
                 )
 
-                for chosen_league, athlete_result in eligible_leagues.items():
+                for chosen_league in eligible_leagues:
                     chosen_league_id = chosen_league["_filename"]
 
                     if (
