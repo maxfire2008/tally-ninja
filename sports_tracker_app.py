@@ -168,6 +168,7 @@ def import_results(file, athletes_directory, output, year):
                     current_result_json = {
                         "id": filename,
                         "finish_time": result_in_seconds,
+                        "_debug_points": points,
                     }
                     try:
                         int(points)
@@ -252,6 +253,7 @@ def import_results(file, athletes_directory, output, year):
                     current_result_json = {
                         "id": filename,
                         "distances": current_result,
+                        "_debug_points": points,
                     }
                     try:
                         int(points)
@@ -320,6 +322,7 @@ def import_results(file, athletes_directory, output, year):
                     current_result_json = {
                         "id": filename,
                         "heights": current_result,
+                        "_debug_points": points,
                     }
                     try:
                         int(points)
@@ -368,6 +371,7 @@ def import_results(file, athletes_directory, output, year):
                     current_result_json = {
                         "id": name,
                         "points": points,
+                        "_debug_points": points,
                     }
                     try:
                         int(points)

@@ -290,7 +290,16 @@ def calculate_points(
                 )
         elif scoring_settings["sort_by"] == "high_jump":
             place = 0
-            unique_scores = set([json.dumps(c["heights"]) for c in competitors])
+            unique_scores = set(
+                [
+                    json.dumps(
+                        c["heights"]
+                        if not (c.get("DNF", False) or c.get("DNS", False))
+                        else []
+                    )
+                    for c in competitors
+                ]
+            )
             my_score = athlete_result["heights"]
 
             my_score_best = None
@@ -320,7 +329,25 @@ def calculate_points(
                         "attempts"
                     ].count(False):
                         if their_score_best == my_score_best:
-                            pass
+                            # count back find last height
+                            for ht in sorted(
+                                athlete_result["heights"],
+                                key=lambda x: x["height"],
+                                reverse=True,
+                            ):
+                                for their_ht in score:
+                                    if their_ht["height"] == ht["height"]:
+                                        if their_ht["attempts"].count(False) == ht[
+                                            "attempts"
+                                        ].count(False):
+                                            continue
+                                        elif their_ht["attempts"].count(False) > ht[
+                                            "attempts"
+                                        ].count(False):
+                                            place += 1
+                                            break
+                                        else:
+                                            break
                         else:
                             raise ValueError(
                                 "Tie in high jump (known bug): "
@@ -358,8 +385,6 @@ def calculate_points(
 
     if athlete_result.get("DNF", False) or athlete_result.get("DQ", False):
         contrib_amount = 0
-
-    print(results_name, athlete_result, contrib_amount)
 
     return contrib_amount
 
@@ -511,9 +536,7 @@ def tally_data(data_folder):
                     ):
                         cached_content["payload"][chosen_league_id][contributes_to] = 0
 
-                    cached_content["payload"][chosen_league_id][
-                        contributes_to
-                    ] += calculate_points(
+                    points = calculate_points(
                         athlete_result,
                         competitors,
                         scoring_settings,
@@ -521,6 +544,18 @@ def tally_data(data_folder):
                         results["type"],
                         results["name"],
                     )
+
+                    if points != athlete_result.get("_debug_points"):
+                        print(
+                            results["name"],
+                            athlete_id,
+                            points,
+                            athlete_result.get("_debug_points"),
+                        )
+
+                    cached_content["payload"][chosen_league_id][
+                        contributes_to
+                    ] += points
         elif competitor_type == "team":
             for team_name in [r["id"] for r in results["results"]]:
                 eligible_leagues = get_eligible_leagues(
@@ -562,9 +597,7 @@ def tally_data(data_folder):
                     ):
                         cached_content["payload"][chosen_league_id][contributes_to] = 0
 
-                    cached_content["payload"][chosen_league_id][
-                        contributes_to
-                    ] += calculate_points(
+                    points = calculate_points(
                         team_result,
                         competitors,
                         scoring_settings,
@@ -572,11 +605,23 @@ def tally_data(data_folder):
                         results["type"],
                         results["name"],
                     )
+
+                    if points != team_result.get("_debug_points"):
+                        print(
+                            results["name"],
+                            team_name,
+                            points,
+                            team_result.get("_debug_points"),
+                        )
+
+                    cached_content["payload"][chosen_league_id][
+                        contributes_to
+                    ] += points
         else:
             raise ValueError("Unknown competitor_type: " + competitor_type)
 
         raceml.dump(cache_file, cached_content)
-        print(results["name"], ":", cached_content["payload"])
+        # print(results["name"], ":", cached_content["payload"])
         tally_board = raceml.deep_add(tally_board, cached_content["payload"])
     return tally_board
 
