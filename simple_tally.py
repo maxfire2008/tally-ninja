@@ -474,7 +474,7 @@ def tally_data(data_folder):
         competitor_type = results.get("competitor_type", "individual")
 
         if competitor_type == "individual":
-            for athlete_id in [r["id"] for r in results["results"]]:
+            for athlete_id in results["results"]:
                 try:
                     athlete = lookup_athlete(athlete_id, data_folder / "athletes")
                 except raceml.TemplateFileError:
@@ -484,7 +484,7 @@ def tally_data(data_folder):
                     athlete, results, data_folder / "leagues"
                 )
 
-                for chosen_league in eligible_leagues:
+                for chosen_league, athlete_result in eligible_leagues.items():
                     chosen_league_id = chosen_league["_filename"]
 
                     if (
@@ -505,8 +505,9 @@ def tally_data(data_folder):
 
                     competitors = []
 
-                    for potential_competitor_result in results["results"]:
-                        potential_competitor_id = potential_competitor_result["id"]
+                    for potential_competitor_id, potential_competitor_result in results[
+                        "results"
+                    ].items():
                         try:
                             potential_competitor = lookup_athlete(
                                 potential_competitor_id, data_folder / "athletes"
@@ -517,12 +518,6 @@ def tally_data(data_folder):
                             potential_competitor, results, data_folder / "leagues"
                         ):
                             competitors.append(potential_competitor_result)
-
-                    # get finish time
-                    for result in results["results"]:
-                        if result["id"] == athlete_id:
-                            athlete_result = result
-                            break
 
                     scoring_settings = chosen_league["scoring"][
                         results.get("scoring_type", results.get("type"))
@@ -557,7 +552,7 @@ def tally_data(data_folder):
                         contributes_to
                     ] += points
         elif competitor_type == "team":
-            for team_name in [r["id"] for r in results["results"]]:
+            for team_name, team_result in results["results"].items():
                 eligible_leagues = get_eligible_leagues(
                     team_name, results, data_folder / "leagues", competitor_type
                 )
@@ -569,8 +564,9 @@ def tally_data(data_folder):
 
                     competitors = []
 
-                    for potential_competitor_result in results["results"]:
-                        potential_competitor_id = potential_competitor_result["id"]
+                    for potential_competitor_id, potential_competitor_result in results[
+                        "results"
+                    ].items():
                         if chosen_league in get_eligible_leagues(
                             potential_competitor_id,
                             results,
@@ -578,12 +574,6 @@ def tally_data(data_folder):
                             competitor_type,
                         ):
                             competitors.append(potential_competitor_result)
-
-                    # get finish time
-                    for result in results["results"]:
-                        if result["id"] == team_name:
-                            team_result = result
-                            break
 
                     scoring_settings = chosen_league["scoring"][
                         results.get("scoring_type", results.get("type"))

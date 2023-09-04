@@ -128,7 +128,7 @@ def import_results(file, athletes_directory, output, year):
                     "gender": event_gender,
                     "ystart": year - int(event_year),
                     "date": date_start.isoformat(),
-                    "results": [],
+                    "results": {},
                 }
 
                 # iterate through rows B7:F(INFINITY)
@@ -166,7 +166,6 @@ def import_results(file, athletes_directory, output, year):
                         print(f"Invalid result: {result}")
 
                     current_result_json = {
-                        "id": filename,
                         "finish_time": result_in_seconds,
                         "_debug_points": points,
                     }
@@ -177,7 +176,7 @@ def import_results(file, athletes_directory, output, year):
                             current_result_json[points] = True
                         else:
                             raise ValueError(f"Invalid points: {points}")
-                    event_json["results"].append(current_result_json)
+                    event_json["results"][filename] = current_result_json
             elif re.match(
                 r"^#[0-9]+ (Long jump|Javelin throw|Triple jump|Shot put|Discus throw) Year ([7-9]|10) (fe)?male$",
                 event_name,
@@ -199,7 +198,7 @@ def import_results(file, athletes_directory, output, year):
                     "gender": event_gender,
                     "ystart": year - int(event_year),
                     "date": date_start.isoformat(),
-                    "results": [],
+                    "results": {},
                 }
 
                 # iterate through rows B7:F(INFINITY)
@@ -251,7 +250,6 @@ def import_results(file, athletes_directory, output, year):
                         print(f"Invalid result: {result}")
 
                     current_result_json = {
-                        "id": filename,
                         "distances": current_result,
                         "_debug_points": points,
                     }
@@ -262,7 +260,7 @@ def import_results(file, athletes_directory, output, year):
                             current_result_json[points] = True
                         else:
                             raise ValueError(f"Invalid points: {points}") from error
-                    event_json["results"].append(current_result_json)
+                    event_json["results"][filename] = current_result_json
             elif re.match(
                 r"^#[0-9]+ High jump Year ([7-9]|10) (fe)?male$",
                 event_name,
@@ -280,7 +278,7 @@ def import_results(file, athletes_directory, output, year):
                     "gender": event_gender,
                     "ystart": year - int(event_year),
                     "date": date_start.isoformat(),
-                    "results": [],
+                    "results": {},
                 }
 
                 # iterate through rows B7:F(INFINITY)
@@ -298,7 +296,7 @@ def import_results(file, athletes_directory, output, year):
                     )
                     athlete = simple_tally.lookup_athlete(filename, athletes_directory)
 
-                    current_result = []
+                    current_result = {}
 
                     # 1m 20cm1m 25cm1m 35cm1m 40cm1m 45cm1m 50cm1m 55cm1m 60cm
                     results_split = result.split("cm")
@@ -315,12 +313,11 @@ def import_results(file, athletes_directory, output, year):
                                 + int(result_split_split[1]) * 10
                             )
                             if r:
-                                current_result.append({"height": r, "attempts": []})
+                                current_result[r] = []
                         except ValueError:
                             pass
 
                     current_result_json = {
-                        "id": filename,
                         "heights": current_result,
                         "_debug_points": points,
                     }
@@ -331,7 +328,7 @@ def import_results(file, athletes_directory, output, year):
                             current_result_json[points] = True
                         else:
                             raise ValueError(f"Invalid points: {points}") from error
-                    event_json["results"].append(current_result_json)
+                    event_json["results"][filename] = current_result_json
             elif re.match(
                 r"^#[0-9]+ 4x100 metres relay Year ([7-9]|10) (fe)?male$",
                 event_name,
@@ -352,7 +349,7 @@ def import_results(file, athletes_directory, output, year):
                     "gender": event_gender,
                     "ystart": year - int(event_year),
                     "date": date_start.isoformat(),
-                    "results": [],
+                    "results": {},
                 }
 
                 # iterate through rows B7:F(INFINITY)
@@ -369,7 +366,6 @@ def import_results(file, athletes_directory, output, year):
                         points = 0
 
                     current_result_json = {
-                        "id": name,
                         "points": points,
                         "_debug_points": points,
                     }
@@ -380,7 +376,7 @@ def import_results(file, athletes_directory, output, year):
                             current_result_json[points] = True
                         else:
                             raise ValueError(f"Invalid points: {points}")
-                    event_json["results"].append(current_result_json)
+                    event_json["results"][name] = current_result_json
 
             if event_json:
                 # write file to output directory
