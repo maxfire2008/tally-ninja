@@ -301,7 +301,7 @@ def calculate_points(
             my_score = athlete_result
 
             my_score_best = None
-            for ht, at in my_score.items():
+            for ht, at in my_score["heights"].items():
                 if my_score_best is None or (
                     ht > my_score_best["height"] and True in at
                 ):
@@ -312,7 +312,7 @@ def calculate_points(
 
             for score in [json.loads(s) for s in unique_scores]:
                 their_score_best = None
-                for ht, at in score.items():
+                for ht, at in score["heights"].items():
                     if their_score_best is None or (
                         ht > their_score_best["height"] and True in at
                     ):
@@ -333,20 +333,16 @@ def calculate_points(
                     ].count(False):
                         if their_score_best == my_score_best:
                             # count back find last height
-                            for ht in sorted(
-                                athlete_result["heights"],
-                                key=lambda x: x["height"],
+                            for ht, at in sorted(
+                                athlete_result["heights"].keys(),
+                                key=lambda x: x[0],
                                 reverse=True,
                             ):
-                                for their_ht in score:
+                                for their_ht, their_at in score["heights"].keys():
                                     if their_ht["height"] == ht["height"]:
-                                        if their_ht["attempts"].count(False) == ht[
-                                            "attempts"
-                                        ].count(False):
+                                        if their_at.count(False) == at.count(False):
                                             continue
-                                        elif their_ht["attempts"].count(False) > ht[
-                                            "attempts"
-                                        ].count(False):
+                                        elif their_at.count(False) > at.count(False):
                                             place += 1
                                             break
                                         else:
