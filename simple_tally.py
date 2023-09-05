@@ -148,6 +148,7 @@ def get_eligible_leagues(
                 "event_distance": results.get("distance", None),
                 "athlete_age": calculate_age(athlete["dob"], results["date"]),
                 "athlete_gender": athlete["gender"],
+                "athlete_ystart": athlete.get("ystart"),
             }
             interpreter = safeeval.SafeEval()
 
@@ -159,9 +160,7 @@ def get_eligible_leagues(
                     athlete_eligible = False
                     break
         elif competitor_type == "team":
-            if league.get("team_league", False):
-                athlete_eligible = True
-            elif league.get("permit_teams", False):
+            if league.get("permit_teams", False):
                 athlete_eligible = True
 
         if athlete_eligible:
@@ -486,15 +485,9 @@ def tally_data(data_folder):
                 for chosen_league in eligible_leagues:
                     chosen_league_id = chosen_league["_filename"]
 
-                    if (
-                        chosen_league["scoring"][results["type"]]["contributes_to"]
-                        == "individual"
-                    ):
+                    if chosen_league["league_type"] == "individual":
                         contributes_to = athlete_id
-                    elif (
-                        chosen_league["scoring"][results["type"]]["contributes_to"]
-                        == "team"
-                    ):
+                    elif chosen_league["league_type"] == "team":
                         contributes_to = athlete["team"]
                     else:
                         raise ValueError(
@@ -557,6 +550,9 @@ def tally_data(data_folder):
                 )
 
                 for chosen_league in eligible_leagues:
+                    if chosen_league["league_type"] != "team":
+                        continue
+
                     chosen_league_id = chosen_league["_filename"]
 
                     contributes_to = team_name
