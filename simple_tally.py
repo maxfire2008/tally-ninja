@@ -160,8 +160,8 @@ def get_eligible_leagues(
                     athlete_eligible = False
                     break
         elif competitor_type == "team":
-            if league.get("permit_teams", False):
-                athlete_eligible = True
+            if not league.get("permit_teams", False):
+                athlete_eligible = False
 
         if athlete_eligible:
             eligible_leagues.append(league)
