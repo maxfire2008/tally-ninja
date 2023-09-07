@@ -4,11 +4,11 @@ distance: short_course
 date: 2023-07-01
 
 results:
-  - id: donald_trump
+  donald_trump:
     finish_time: 3473 # 7
-  - id: joe_biden
+  joe_biden:
     finish_time: 3382 # 8
-  - id: kamala_harris
+  kamala_harris:
     finish_time: 2537 # 10
-  - id: hillary_clinton
+  hillary_clinton:
     finish_time: 2964 # 9

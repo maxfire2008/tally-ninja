@@ -440,7 +440,8 @@ def tally_data(data_folder):
         results = raceml.load(results_filename)
         # get md5 hash of results file
         results_hash = (
-            hashlib.sha256(
+            "simple_tally_"
+            + hashlib.sha256(
                 repr(results_filename).encode() + repr(results).encode()
             ).hexdigest()
             + ".racecache"
