@@ -1,9 +1,4 @@
 _include: _default.yaml
-type: league
 name: Politicians Mixed Houses
 league_type: team
-scoring:
-  method: 'minus_place'
-  method_value: 11
-  sort_by: 'finish_time'
-  contributes_to: team
+permit_teams: true
