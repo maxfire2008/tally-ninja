@@ -59,7 +59,7 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
                 )
         else:
             with athlete_filename.open("w") as f:
-                yaml.dump(athlete_data, f)
+                yaml.dump(athlete_data, f, sort_keys=False)
 
         athlete_result = {}
 
@@ -119,7 +119,7 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
             )
     else:
         with race_filename.open("w") as f:
-            yaml.dump(results_file_json, f)
+            yaml.dump(results_file_json, f, sort_keys=False)
 
 
 def process_folder(input_folder, data_folder):
