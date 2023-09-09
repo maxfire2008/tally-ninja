@@ -23,11 +23,9 @@
 
     SetBatchLines -1
 
-    sleep 100
+    sleep 50
     MouseMove, 1853, 34, 2
 
-    sleep 100
-
     sleep 4
 
     Click, down
@@ -36,11 +34,9 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 1810, 327, 2
 
-    sleep 100
-
     sleep 4
 
     Click, down
@@ -49,91 +45,91 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 1797, 321, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1793, 322, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1724, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1710, 318, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1700, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1685, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1685, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1685, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1685, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1685, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1685, 319, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1671, 350, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1661, 391, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1656, 419, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1656, 439, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1659, 451, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
     MouseMove, 1660, 457, 2
 
-    sleep 10
+    sleep 5
 
     sleep 4
 
@@ -146,10 +142,19 @@
     sleep 15
     MouseMove, 1660, 457, 2
 
-    sleep 100
+    sleep 50
     MouseMove, 1502, 455, 2
 
-    sleep 100
+    sleep 4
+
+    Click, down
+
+    sleep 23
+
+    Click, up
+
+    sleep 50
+    MouseMove, 904, 477, 2
 
     sleep 4
 
@@ -159,23 +164,8 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 904, 477, 2
-
-    sleep 100
-
-    sleep 4
-
-    Click, down
-
-    sleep 23
-
-    Click, up
-
-    sleep 100
-    MouseMove, 904, 477, 2
-
-    sleep 100
 
     sleep 4
 
@@ -273,10 +263,8 @@
 
     Sleep, 20
 
-    sleep 100
+    sleep 50
     MouseMove, 1035, 737, 2
-
-    sleep 100
 
     sleep 4
 
@@ -286,10 +274,8 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 1035, 737, 2
-
-    sleep 100
 
     sleep 4
 
@@ -299,11 +285,9 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 946, 481, 2
 
-    sleep 100
-
     sleep 4
 
     Click, down
@@ -312,10 +296,8 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 1001, 694, 2
-
-    sleep 100
 
     sleep 4
 
@@ -326,12 +308,9 @@
     Click, up
 
     sleep 15
-    MouseMove, 1001, 694, 2
 
-    sleep 100
+    sleep 50
     MouseMove, 1001, 694, 2
-
-    sleep 100
 
     sleep 4
 
@@ -341,10 +320,8 @@
 
     Click, up
 
-    sleep 100
+    sleep 50
     MouseMove, 1008, 589, 2
-
-    sleep 100
 
     sleep 4
 
@@ -357,10 +334,8 @@
     sleep 15
     MouseMove, 1008, 589, 2
 
-    sleep 100
+    sleep 50
     MouseMove, 1008, 589, 2
-
-    sleep 100
 
     sleep 4
 
@@ -369,6 +344,4 @@
     sleep 23
 
     Click, up
-
-    sleep 100
 return
