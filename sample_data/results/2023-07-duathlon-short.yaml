@@ -12,3 +12,5 @@ results:
     finish_time: 2537 # 10
   hillary_clinton:
     finish_time: 2964 # 9
+  mitch_mcconnell:
+    DNF: true

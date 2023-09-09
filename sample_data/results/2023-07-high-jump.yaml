@@ -3,52 +3,32 @@ name: High jump
 date: '2023-09-03T02:50:00'
 
 results:
-- heights:
-  - attempts:
-    - false
-    - true
-    height: 1200
-  - attempts:
-    - false
-    - true
-    height: 1250
-  - attempts:
-    - false
-    - true
-    height: 1350
-  - attempts:
-    - false
-    - false
-    - true
-    height: 1400
-  id: donald_trump
-- heights:
-  - attempts: []
-    height: 1200
-  - attempts: []
-    height: 1250
-  - attempts: []
-    height: 1350
-  - attempts: []
-    height: 1400
-  id: clive_palmer
-- heights:
-  - attempts: []
-    height: 1200
-  - attempts: []
-    height: 1250
-  - attempts: []
-    height: 1350
-  - attempts: []
-    height: 1400
-  id: george_bush
-- heights:
-  - attempts: []
-    height: 1200
-  - attempts: []
-    height: 1250
-  - attempts: []
-    height: 1350
-  - attempts: []
-    height: 1400
-  id: hillary_clinton
+  donald_trump:
+    heights:
+      1200:
+        - false
+        - false
+        - true
+      1250:
+        - false
+        - false
+        - false
+  hillary_clinton:
+    heights:
+      1200:
+        - true
+      1250:
+        - true
+      1300:
+        - false
+        - true
+      1350:
+        - false
+        - false
+        - false
+  clive_palmer:
+    heights:
+      1200:
+        - false
+        - false
+        - false
