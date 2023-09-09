@@ -14,6 +14,7 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
     athletes_folder.mkdir(parents=True, exist_ok=True)
 
     results_folder = data_folder / "results"
+    results_folder.mkdir(parents=True, exist_ok=True)
 
     # read the input file as a dict with headers
     with open(input, newline="") as csvfile:
@@ -23,11 +24,15 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
     race_results = {}
 
     race_name = rows[0]["Race Name"]
+    race_start_time = rows[0]["Race Start Date/Time"]
     for row in rows:
+        print(row)
         if race_name != row["Race Name"]:
             raise ValueError(
                 f"race_name {race_name!r} doesn't match {row['Race Name']!r}"
             )
+        if race_start_time > row["Race Start Date/Time"]:
+            race_start_time = row["Race Start Date/Time"]
 
         athlete_data = {
             "name": row["First Name"] + " " + row["Last Name"],
@@ -63,58 +68,29 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
         else:
             race_results[sanitized_name] = finish_time
 
-    print(race_results)
+    if "Short Course" in race_name:
+        pass
+
+    # create the results file
+    results_file_json = {
+        "type": "race",
+        "name": race_name,
+        "date": race_start_time,
+    }
 
 
-def art_watch(input, data_folder):
-    # register watch on the files in the input folder
-    # when a file is created, read it and process it, then delete it
-
-    watch_folder = pathlib.Path(input)
+def process_folder(input_folder, data_folder):
+    input_folder = pathlib.Path(input_folder)
     data_folder = pathlib.Path(data_folder)
+    data_folder.mkdir(parents=True, exist_ok=True)
 
-    # create the input folder if it doesn't exist
-    watch_folder.mkdir(parents=True, exist_ok=True)
-
-    # this file content
-    code_content = open(__file__, "rb").read()
-
-    while True:
-        if open(__file__, "rb").read() != code_content:
-            print("Code changed, exiting")
-            return
-
-        for file in watch_folder.iterdir():
-            if (
-                file.is_file()
-                and file.stem == "sport-scorer-temp"
-                and file.suffix == ".csv"
-            ):
-                # process the file
-                print(f"Processing {file}")
-
-                for i in range(10):
-                    try:
-                        proposed_filename = (
-                            data_folder
-                            / "cache"
-                            / f"art_importer_{int(time.time()*1000)}.racecache"
-                        )
-                        proposed_filename.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.move(file, proposed_filename)
-                        break
-                    except PermissionError:
-                        sleep_time = min(0.1 * 2**i, 15)
-                        print(f"Waiting {sleep_time}s to use {file}")
-                        time.sleep(sleep_time)
-
-                import_agee_race_timing(proposed_filename, data_folder)
-                print(f"Processed {file}")
-        time.sleep(2)
+    for filename in input_folder.glob("*.csv"):
+        if filename.is_file():
+            import_agee_race_timing(filename, data_folder)
 
 
 if __name__ == "__main__":
-    art_watch(
-        pathlib.Path.home() / "Desktop" / "ART-Sport-Scorer-Watch",
+    process_folder(
+        "../sport-scorer-sample-data/trisouth_art_exports/",
         "../sport-scorer-sample-data/art/",
     )
