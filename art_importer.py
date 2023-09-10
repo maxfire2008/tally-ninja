@@ -101,7 +101,7 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
         "type": "race",
         "name": race_name,
         "distance": race_distance,
-        "date": race_start_time,
+        "date": datetime.datetime.strptime(race_start_time, "%d/%m/%Y %H:%M:%S.%f"),
         "results": race_results,
     }
 

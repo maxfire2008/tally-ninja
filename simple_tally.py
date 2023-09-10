@@ -157,6 +157,7 @@ def get_eligible_leagues(
                 result = interpreter.execute(ast, env)
                 # print(">>", athlete, criterion, result)
                 if not result:
+                    # print(criterion, athlete["name"])
                     athlete_eligible = False
                     break
         elif competitor_type == "team":
