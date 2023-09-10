@@ -157,7 +157,7 @@ def get_eligible_leagues(
                 result = interpreter.execute(ast, env)
                 # print(">>", athlete, criterion, result)
                 if not result:
-                    # print(criterion, athlete["name"])
+                    print(criterion, athlete["name"])
                     athlete_eligible = False
                     break
         elif competitor_type == "team":
@@ -218,7 +218,11 @@ def calculate_points(
                     [
                         max(c[scoring_settings["sort_key"]])
                         if c[scoring_settings["sort_key"]]
-                        and not (c.get("DNF", False) or c.get("DNS", False))
+                        and not (
+                            c.get("DNF", False)
+                            or c.get("DNS", False)
+                            or c.get("DQ", False)
+                        )
                         else (
                             float("inf")
                             if scoring_settings["sort_by"] == "lowest"
@@ -233,6 +237,7 @@ def calculate_points(
                     and not (
                         athlete_result.get("DNF", False)
                         or athlete_result.get("DNS", False)
+                        or athlete_result.get("DQ", False)
                     )
                     else (
                         float("inf")
@@ -244,7 +249,11 @@ def calculate_points(
                 unique_scores = set(
                     [
                         c[scoring_settings["sort_key"]]
-                        if not (c.get("DNF", False) or c.get("DNS", False))
+                        if not (
+                            c.get("DNF", False)
+                            or c.get("DNS", False)
+                            or c.get("DQ", False)
+                        )
                         else (
                             float("inf")
                             if scoring_settings["sort_by"] == "lowest"
@@ -258,6 +267,7 @@ def calculate_points(
                     if not (
                         athlete_result.get("DNF", False)
                         or athlete_result.get("DNS", False)
+                        or athlete_result.get("DQ", False)
                     )
                     else (
                         float("inf")
@@ -293,7 +303,13 @@ def calculate_points(
             unique_scores = set(
                 [
                     json.dumps(
-                        v if not (v.get("DNF", False) or v.get("DNS", False)) else []
+                        v
+                        if not (
+                            v.get("DNF", False)
+                            or v.get("DNS", False)
+                            or v.get("DQ", False)
+                        )
+                        else []
                     )
                     for v in competitors
                 ]
@@ -382,7 +398,11 @@ def calculate_points(
     if contrib_amount is None:
         raise ValueError("No method found for league: " + chosen_league_id)
 
-    if athlete_result.get("DNF", False) or athlete_result.get("DQ", False):
+    if (
+        athlete_result.get("DNF", False)
+        or athlete_result.get("DQ", False)
+        or athlete_result.get("DNS", False)
+    ):
         contrib_amount = 0
 
     return contrib_amount
@@ -613,7 +633,22 @@ def tally_data(data_folder):
     return tally_board
 
 
+def print_results(tally_board):
+    # iterate through leagues
+    for league, league_results in tally_board.items():
+        print("#", league)
+        print("Athlete | Points")
+        print("-|-")
+        for athlete_id, points in sorted(
+            league_results.items(), key=lambda x: x[1], reverse=True
+        ):
+            print(athlete_id, "|", points)
+        print()
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
-    pprint(tally_data(sys.argv[1]))
+    tb = tally_data(sys.argv[1])
+    pprint(tb)
+    print_results(tb)
     print("Time taken:", datetime.datetime.now() - start_time)
