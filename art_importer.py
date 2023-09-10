@@ -74,10 +74,14 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
             if not row["Finishing Time (in seconds)"]:
                 if row["Finishing Time"] in ["DNS", "DNF"]:
                     athlete_result[row["Finishing Time"]] = True
+                elif row["Laps Remaining"] != "0":
+                    print(f"Missing finish time for {sanitized_name}, {row}")
+                    athlete_result["DNF"] = True
                 else:
                     raise ValueError(f"Missing finish time for {sanitized_name}, {row}")
             elif row["Laps Remaining"] != "0":
-                raise ValueError(f"Missing finish time for {sanitized_name}, {row}")
+                print(f"Missing finish time for {sanitized_name}, {row}")
+                athlete_result["DNF"] = True
 
             race_results[sanitized_name] = athlete_result
 
@@ -95,6 +99,8 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
         raise ValueError(
             f"Race name {race_name} does not match any specified distances."
         )
+
+    print(race_start_time, race_name)
 
     # create the results file
     results_file_json = {
