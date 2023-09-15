@@ -52,7 +52,7 @@ def deep_add(base, changes):
 _file_cache = {}
 
 
-def load(filepath, allow_template_only=False, cache=True):
+def load(filepath, allow_template_only=False, cache=True, file_stream=None):
     arg_key = (filepath, allow_template_only)
     if cache and arg_key in _file_cache:
         return _file_cache[arg_key]
@@ -60,8 +60,13 @@ def load(filepath, allow_template_only=False, cache=True):
     if not isinstance(filepath, pathlib.Path):
         filepath = pathlib.Path(filepath).resolve()
 
-    with open(filepath, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+    if file_stream:
+        # seek to beginning of file
+        file_stream.seek(0)
+        data = yaml.safe_load(file_stream)
+    else:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
 
     # check for "_template_only" key
     if data.get("_template_only", False) and not allow_template_only:

@@ -1,5 +1,7 @@
 import pathlib
+import uuid
 import wx
+import raceml
 
 
 class Editor(wx.Frame):
@@ -17,14 +19,24 @@ class Editor(wx.Frame):
         self.CreateStatusBar()
         self.SetStatusText("Welcome to sports-scorer! Tips will appear here.")
 
+        # create a panel in the frame
+        self.panel = wx.Panel(self)
+
+        self.uuid = uuid.uuid4().hex
+
         self.resultSelectMenu()
 
-    def resultSelectMenu(self):
+    def resultSelectMenu(self, event: wx.Event = None) -> None:
+        # clear the frame
+        self.panel.DestroyChildren()
+
+        self.state = "resultSelectMenu"
+
         if self.database is None:
             # create heading that says "No database opened"
-            heading = wx.StaticText(self, label="No database opened")
+            heading = wx.StaticText(self.panel, label="No database opened")
             # create a button to open a database
-            openDatabaseButton = wx.Button(self, label="Open Database")
+            openDatabaseButton = wx.Button(self.panel, label="Open Database")
             # bind the button to the openDatabase function
             openDatabaseButton.Bind(wx.EVT_BUTTON, self.OnOpenDatabase)
 
@@ -32,29 +44,35 @@ class Editor(wx.Frame):
             sizer = wx.BoxSizer(wx.VERTICAL)
             sizer.Add(heading, 0, wx.ALIGN_CENTER_HORIZONTAL)
             sizer.Add(openDatabaseButton, 0, wx.ALIGN_CENTER_HORIZONTAL)
-            self.SetSizer(sizer)
-            return
+            self.panel.SetSizer(sizer)
+        else:
+            # create a box sizer
+            sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # create a box sizer
-        sizer = wx.BoxSizer(wx.VERTICAL)
+            # create a list of files in self.database / results
+            results = [
+                str(filename.relative_to(self.database / "results"))[:-5]
+                for filename in self.database.glob("results/*.yaml")
+            ]
 
-        # create a list of files in self.database / results
-        results = [str(filename) for filename in self.database.glob("results/*.yaml")]
+            # create a listbox with the results
+            resultListBox = wx.ListBox(self.panel, choices=results)
 
-        # create a listbox with the results
-        resultListBox = wx.ListBox(self, choices=results)
+            # when an item is double clicked, call self.openResultEditor
+            resultListBox.Bind(wx.EVT_LISTBOX_DCLICK, self.openResultEditor)
 
-        # when an item is double clicked, call self.openResultEditor
-        resultListBox.Bind(wx.EVT_LISTBOX_DCLICK, self.openResultEditor)
+            # add the listbox to the sizer
+            sizer.Add(resultListBox, 1, wx.EXPAND)
+            self.panel.SetSizer(sizer)
 
-    def makeMenuBar(self):
+    def makeMenuBar(self) -> None:
         """
         A menu bar is composed of menus, which are composed of menu items.
         This method builds a set of menus and binds handlers to be called
         when the menu item is selected.
         """
 
-        # Make a file menu with Hello and Exit items
+        # Make a file menu
         fileMenu = wx.Menu()
         # The "\t..." syntax defines an accelerator key that also triggers
         # the same event
@@ -63,7 +81,18 @@ class Editor(wx.Frame):
             "&Open Database \tCtrl-O",
             "Open a sports-scorer database",
         )
+        closeResult = fileMenu.Append(
+            -1,
+            "&Close Result \tCtrl-W",
+            "Close the currently open result",
+        )
         fileMenu.AppendSeparator()
+
+        debugMenu = wx.Menu()
+        clearWindow = debugMenu.Append(
+            -1, "Clear window\tCtrl-L", "self.panel.DestroyChildren()"
+        )
+        debugMenu.AppendSeparator()
 
         # When using a stock ID we don't need to specify the menu item's
         # label
@@ -76,6 +105,8 @@ class Editor(wx.Frame):
         menuBar = wx.MenuBar()
         menuBar.Append(fileMenu, "&File")
 
+        menuBar.Append(debugMenu, "&Debug")
+
         # Give the menu bar to the frame
         self.SetMenuBar(menuBar)
 
@@ -84,14 +115,28 @@ class Editor(wx.Frame):
         # activated then the associated handler function will be called.
         self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
         self.Bind(wx.EVT_MENU, self.OnOpenDatabase, openDatabase)
+        self.Bind(wx.EVT_MENU, self.OnCloseResult, closeResult)
+        self.Bind(wx.EVT_MENU, lambda e: self.panel.DestroyChildren(), clearWindow)
 
-    def OnExit(self, event):
+    def OnExit(self, event: wx.Event) -> None:
         """Close the frame, terminating the application."""
+        # remove the lock if it exists and it's ours
+        if self.database is not None:
+            if (self.database / "sports-scorer.lock").exists():
+                with open(self.database / "sports-scorer.lock", "r") as f:
+                    if f.read() == self.uuid:
+                        (self.database / "sports-scorer.lock").unlink()
+
         self.Close(True)
 
-    def OnOpenDatabase(self, event):
+    def OnOpenDatabase(self, event: wx.Event = None) -> None:
         """Open's a new database from a file"""
         # file picker dialog for a folder (not a file as the name suggests)
+
+        if self.state != "resultSelectMenu":
+            # run OnCloseResult to close the currently open result
+            if not self.OnCloseResult():
+                return
 
         with wx.DirDialog(
             self,
@@ -103,14 +148,76 @@ class Editor(wx.Frame):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             self.database = pathlib.Path(fileDialog.GetPath())
-            print(self.database)
-            if self.state == "resultSelectMenu":
-                self.resultSelectMenu()
 
-    def openResultEditor(self, event):
+            # make sure to get the lock file: sports-scorer.lock
+            # if it doesn't exist, create it
+            if not (self.database / "sports-scorer.lock").exists():
+                with open(self.database / "sports-scorer.lock", "w") as f:
+                    f.write(self.uuid)
+
+            # check if the lock file is the same as self.uuid
+            with open(self.database / "sports-scorer.lock", "r") as f:
+                if f.read() != self.uuid:
+                    # if it isn't, show a dialog box and return
+                    self.database = None
+                    dialog = wx.MessageDialog(
+                        self.panel,
+                        "This database is currently in use by another instance of sports-scorer. Please try again later.",
+                        "Database in use",
+                        wx.OK | wx.ICON_ERROR,
+                    )
+                    dialog.ShowModal()
+
+            self.resultSelectMenu()
+
+    def openResultEditor(self, event: wx.Event) -> None:
         """Opens a result editor for the selected result"""
         # print the result that was double clicked
         print(event.GetString())
+        # open the result and check the "type" key
+        result_path = self.database / "results" / (event.GetString() + ".yaml")
+        result = raceml.load(result_path)
+
+        self.panel.DestroyChildren()
+
+        if result["type"] == "race":
+            self.raceEditor(result_path)
+        else:
+            # create a heading that says "Unknown result type"
+            heading = wx.StaticText(
+                self.panel, label="Unknown result type: " + result["type"]
+            )
+            # create a button to go back to the result select menu
+            backButton = wx.Button(self.panel, label="Back")
+            # bind the button to the resultSelectMenu function
+            backButton.Bind(wx.EVT_BUTTON, self.resultSelectMenu)
+
+            # insert the heading and button into a vertical box sizer
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            sizer.Add(heading, 0, wx.ALIGN_CENTER_HORIZONTAL)
+            sizer.Add(backButton, 0, wx.ALIGN_CENTER_HORIZONTAL)
+            self.panel.SetSizer(sizer)
+
+    def OnCloseResult(self, event: wx.Event = None) -> bool:
+        """Closes the currently open result"""
+        if self.state == "unsaved":
+            # create a dialog box
+            dialog = wx.MessageDialog(
+                self.panel,
+                "You have unsaved changes. Are you sure you want to close this result?",
+                "Unsaved Changes",
+                wx.YES_NO | wx.ICON_QUESTION,
+            )
+            # if the user clicks yes, close the result
+            if dialog.ShowModal() == wx.ID_NO:
+                return False
+        self.resultSelectMenu()
+        return True
+
+    def raceEditor(self, race_filename: pathlib.Path) -> None:
+        self.state = "unsaved"
+        with open(race_filename, "r") as f:
+            race_data = raceml.load(race_filename, file_stream=f)
 
 
 if __name__ == "__main__":
