@@ -27,23 +27,23 @@ class Editor(wx.Frame):
         self.resultSelectMenu()
 
     def resultSelectMenu(self, event: wx.Event = None) -> None:
-        # clear the frame
+        # clear the panel
         self.panel.DestroyChildren()
 
         self.state = "resultSelectMenu"
 
         if self.database is None:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+
             # create heading that says "No database opened"
             heading = wx.StaticText(self.panel, label="No database opened")
+            sizer.Add(heading, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
             # create a button to open a database
             openDatabaseButton = wx.Button(self.panel, label="Open Database")
-            # bind the button to the openDatabase function
             openDatabaseButton.Bind(wx.EVT_BUTTON, self.OnOpenDatabase)
-
-            # insert the heading and button into a vertical box sizer
-            sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(heading, 0, wx.ALIGN_CENTER_HORIZONTAL)
             sizer.Add(openDatabaseButton, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
             self.panel.SetSizer(sizer)
         else:
             # create a box sizer
@@ -57,13 +57,13 @@ class Editor(wx.Frame):
 
             # create a listbox with the results
             resultListBox = wx.ListBox(self.panel, choices=results)
-
-            # when an item is double clicked, call self.openResultEditor
             resultListBox.Bind(wx.EVT_LISTBOX_DCLICK, self.openResultEditor)
-
-            # add the listbox to the sizer
             sizer.Add(resultListBox, 1, wx.EXPAND)
+
             self.panel.SetSizer(sizer)
+
+        # refresh the layout of the panel
+        self.panel.Layout()
 
     def makeMenuBar(self) -> None:
         """
