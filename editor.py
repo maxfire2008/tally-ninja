@@ -10,7 +10,10 @@ class Editor(wx.Frame):
         super(Editor, self).__init__(*args, **kw)
 
         self.database = None
+        self.database_lock = None
         self.state = "resultSelectMenu"
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         # create a menu bar
         self.makeMenuBar()
@@ -120,23 +123,37 @@ class Editor(wx.Frame):
 
     def OnExit(self, event: wx.Event) -> None:
         """Close the frame, terminating the application."""
-        # remove the lock if it exists and it's ours
-        if self.database is not None:
-            if (self.database / "sports-scorer.lock").exists():
-                with open(self.database / "sports-scorer.lock", "r") as f:
-                    if f.read() == self.uuid:
-                        (self.database / "sports-scorer.lock").unlink()
-
         self.Close(True)
+
+    def OnClose(self, event: wx.Event) -> None:
+        """Close the frame, terminating the application."""
+        if self.exitDatabase() != "success":
+            event.Veto()
+            return
+        self.Destroy()
+
+    def exitDatabase(self) -> None:
+        """Close the frame, terminating the application."""
+        if self.state != "resultSelectMenu":
+            # run OnCloseResult to close the currently open result
+            if not self.OnCloseResult():
+                return "cancel"
+
+        # remove the lock if it exists and it's ours
+        if self.database_lock is not None:
+            if self.database_lock is not None:
+                self.database_lock.release()
+            self.database = None
+            self.database_lock = None
+
+        return "success"
 
     def OnOpenDatabase(self, event: wx.Event = None) -> None:
         """Open's a new database from a file"""
         # file picker dialog for a folder (not a file as the name suggests)
 
-        if self.state != "resultSelectMenu":
-            # run OnCloseResult to close the currently open result
-            if not self.OnCloseResult():
-                return
+        if self.exitDatabase() != "success":
+            return
 
         with wx.DirDialog(
             self,
@@ -151,22 +168,19 @@ class Editor(wx.Frame):
 
             # make sure to get the lock file: sports-scorer.lock
             # if it doesn't exist, create it
-            if not (self.database / "sports-scorer.lock").exists():
-                with open(self.database / "sports-scorer.lock", "w") as f:
-                    f.write(self.uuid)
+            self.database_lock = raceml.DatabaseLock(self.database)
 
-            # check if the lock file is the same as self.uuid
-            with open(self.database / "sports-scorer.lock", "r") as f:
-                if f.read() != self.uuid:
-                    # if it isn't, show a dialog box and return
-                    self.database = None
-                    dialog = wx.MessageDialog(
-                        self.panel,
-                        "This database is currently in use by another instance of sports-scorer. Please try again later.",
-                        "Database in use",
-                        wx.OK | wx.ICON_ERROR,
-                    )
-                    dialog.ShowModal()
+            try:
+                self.database_lock.acquire()
+            except ValueError as error:
+                self.database = None
+                dialog = wx.MessageDialog(
+                    self.panel,
+                    str(error),
+                    "Database in use",
+                    wx.OK | wx.ICON_ERROR,
+                )
+                dialog.ShowModal()
 
             self.resultSelectMenu()
 

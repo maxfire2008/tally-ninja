@@ -13,13 +13,17 @@ Functions:
     tally_data: Tally data for sports events.
 
 """
+import datetime
 import hashlib
 import json
-import sys
 import pathlib
+import sys
 from pprint import pprint
-import datetime
+import time
+import jinja2
+
 import safeeval
+
 import raceml
 
 
@@ -51,6 +55,12 @@ def calculate_age(born: datetime.date | str, today: datetime.date | str) -> int:
         born = datetime.datetime.fromisoformat(born)
     if isinstance(today, str):
         today = datetime.datetime.fromisoformat(today)
+
+    if isinstance(born, datetime.datetime):
+        born = born.date()
+    if isinstance(today, datetime.datetime):
+        today = today.date()
+
     delta = today - born
     return delta.days // 365
 
@@ -80,7 +90,9 @@ def number(x) -> int | float:
 _athlete_cache = {}
 
 
-def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
+def lookup_athlete(
+    athlete_id, athletes_folder: pathlib.Path, database_lock: raceml.DatabaseLock
+):
     """
     Looks up an athlete's data by their ID.
 
@@ -94,6 +106,8 @@ def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
     Raises:
         ValueError: If the athlete is not found or multiple athletes are found with the same ID.
     """
+    database_lock.check()
+
     if (athletes_folder, athlete_id) in _athlete_cache:
         return _athlete_cache[(athletes_folder, athlete_id)]
     athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + ".yaml"))
@@ -107,11 +121,41 @@ def lookup_athlete(athlete_id, athletes_folder: pathlib.Path):
     return athlete_data
 
 
+_days_events_cache = {}
+
+
+def get_days_events(
+    date, results_folder: pathlib.Path, database_lock: raceml.DatabaseLock
+):
+    database_lock.check()
+
+    if date in _days_events_cache:
+        return _days_events_cache[date]
+    else:
+        _days_events_cache[date] = []
+
+    for results_filename in results_folder.glob("**/*.yaml"):
+        results = raceml.load(results_filename)
+        results_date = results["date"]
+
+        if isinstance(results_date, datetime.datetime):
+            results_date = results_date.date()
+        if results_date == date:
+            _days_events_cache[date].append(results)
+
+    return _days_events_cache[date]
+
+
 _eligible_leagues_cache = {}
 
 
 def get_eligible_leagues(
-    athlete, results, leagues_folder: pathlib.Path, competitor_type: str = "individual"
+    athlete,
+    results,
+    leagues_folder: pathlib.Path,
+    results_folder: pathlib.Path,
+    database_lock: raceml.DatabaseLock,
+    competitor_type: str = "individual",
 ):
     """
     Returns a list of leagues that an athlete is eligible for
@@ -129,6 +173,8 @@ def get_eligible_leagues(
         ValueError: If the athlete is eligible for multiple leagues of the same type.
 
     """
+    database_lock.check()
+
     arg_key = repr((athlete, results, leagues_folder))
     if arg_key in _eligible_leagues_cache:
         return _eligible_leagues_cache[arg_key]
@@ -149,6 +195,9 @@ def get_eligible_leagues(
                 "athlete_age": calculate_age(athlete["dob"], results["date"]),
                 "athlete_gender": athlete["gender"],
                 "athlete_ystart": athlete.get("ystart"),
+                "days_events": get_days_events(
+                    results["date"], results_folder, database_lock
+                ),
             }
             interpreter = safeeval.SafeEval()
 
@@ -157,7 +206,6 @@ def get_eligible_leagues(
                 result = interpreter.execute(ast, env)
                 # print(">>", athlete, criterion, result)
                 if not result:
-                    print(criterion, athlete["name"])
                     athlete_eligible = False
                     break
         elif competitor_type == "team":
@@ -408,7 +456,11 @@ def calculate_points(
     return contrib_amount
 
 
-def tally_data(data_folder):
+def tally_data(
+    data_folder: pathlib.Path or str,
+    database_lock: raceml.DatabaseLock,
+    print_debug_points: bool = False,
+) -> dict:
     """
     Tally the results of a race.
 
@@ -484,6 +536,10 @@ def tally_data(data_folder):
                     cache_file.unlink()
                     print("Deleted out of date cache file: " + str(cache_file))
 
+        results_filename_relative_to_results_folder = str(
+            results_filename.relative_to(results_folder)
+        )
+
         cached_content = {
             "athletes_folder_hash": athletes_folder_hash,
             "leagues_folder_hash": leagues_folder_hash,
@@ -496,16 +552,34 @@ def tally_data(data_folder):
         if competitor_type == "individual":
             for athlete_id, athlete_result in results["results"].items():
                 try:
-                    athlete = lookup_athlete(athlete_id, data_folder / "athletes")
+                    athlete = lookup_athlete(
+                        athlete_id, data_folder / "athletes", database_lock
+                    )
                 except raceml.TemplateFileError:
                     continue
 
-                eligible_leagues = get_eligible_leagues(
-                    athlete, results, data_folder / "leagues"
-                )
+                try:
+                    eligible_leagues = get_eligible_leagues(
+                        athlete,
+                        results,
+                        data_folder / "leagues",
+                        results_folder,
+                        database_lock,
+                    )
+                except Exception as e:
+                    raise ValueError(
+                        "Error getting eligible leagues for athlete: "
+                        + athlete_id
+                        + " in results: "
+                        + results["name"]
+                    ) from e
 
                 for chosen_league in eligible_leagues:
-                    chosen_league_id = chosen_league["_filename"]
+                    chosen_league_id = str(
+                        pathlib.Path(chosen_league["_filepath"]).relative_to(
+                            data_folder / "leagues"
+                        )
+                    )
 
                     if chosen_league["league_type"] == "individual":
                         contributes_to = athlete_id
@@ -524,12 +598,18 @@ def tally_data(data_folder):
                     ].items():
                         try:
                             potential_competitor = lookup_athlete(
-                                potential_competitor_id, data_folder / "athletes"
+                                potential_competitor_id,
+                                data_folder / "athletes",
+                                database_lock,
                             )
                         except raceml.TemplateFileError:
                             continue
                         if chosen_league in get_eligible_leagues(
-                            potential_competitor, results, data_folder / "leagues"
+                            potential_competitor,
+                            results,
+                            data_folder / "leagues",
+                            results_folder,
+                            database_lock,
                         ):
                             competitors.append(potential_competitor_result)
 
@@ -543,7 +623,10 @@ def tally_data(data_folder):
                         contributes_to
                         not in cached_content["payload"][chosen_league_id]
                     ):
-                        cached_content["payload"][chosen_league_id][contributes_to] = 0
+                        cached_content["payload"][chosen_league_id][contributes_to] = {
+                            "total": 0,
+                            "per_event": {},
+                        }
 
                     points = calculate_points(
                         athlete_result,
@@ -554,7 +637,10 @@ def tally_data(data_folder):
                         results["name"],
                     )
 
-                    if points != athlete_result.get("_debug_points"):
+                    if (
+                        points != athlete_result.get("_debug_points")
+                        and print_debug_points
+                    ):
                         print(
                             results["name"],
                             athlete_id,
@@ -562,20 +648,33 @@ def tally_data(data_folder):
                             athlete_result.get("_debug_points"),
                         )
 
-                    cached_content["payload"][chosen_league_id][
-                        contributes_to
+                    cached_content["payload"][chosen_league_id][contributes_to][
+                        "total"
                     ] += points
+
+                    cached_content["payload"][chosen_league_id][contributes_to][
+                        "per_event"
+                    ][results_filename_relative_to_results_folder] = points
         elif competitor_type == "team":
             for team_name, team_result in results["results"].items():
                 eligible_leagues = get_eligible_leagues(
-                    team_name, results, data_folder / "leagues", competitor_type
+                    team_name,
+                    results,
+                    data_folder / "leagues",
+                    results_folder,
+                    database_lock,
+                    competitor_type,
                 )
 
                 for chosen_league in eligible_leagues:
                     if chosen_league["league_type"] != "team":
                         continue
 
-                    chosen_league_id = chosen_league["_filename"]
+                    chosen_league_id = str(
+                        pathlib.Path(chosen_league["_filepath"]).relative_to(
+                            data_folder / "leagues"
+                        )
+                    )
 
                     contributes_to = team_name
 
@@ -588,6 +687,8 @@ def tally_data(data_folder):
                             potential_competitor_id,
                             results,
                             data_folder / "leagues",
+                            results_folder,
+                            database_lock,
                             competitor_type,
                         ):
                             competitors.append(potential_competitor_result)
@@ -602,7 +703,10 @@ def tally_data(data_folder):
                         contributes_to
                         not in cached_content["payload"][chosen_league_id]
                     ):
-                        cached_content["payload"][chosen_league_id][contributes_to] = 0
+                        cached_content["payload"][chosen_league_id][contributes_to] = {
+                            "total": 0,
+                            "per_event": {},
+                        }
 
                     points = calculate_points(
                         team_result,
@@ -613,7 +717,10 @@ def tally_data(data_folder):
                         results["name"],
                     )
 
-                    if points != team_result.get("_debug_points"):
+                    if (
+                        points != team_result.get("_debug_points")
+                        and print_debug_points
+                    ):
                         print(
                             results["name"],
                             team_name,
@@ -621,34 +728,103 @@ def tally_data(data_folder):
                             team_result.get("_debug_points"),
                         )
 
-                    cached_content["payload"][chosen_league_id][
-                        contributes_to
+                    cached_content["payload"][chosen_league_id][contributes_to][
+                        "total"
                     ] += points
+
+                    cached_content["payload"][chosen_league_id][contributes_to][
+                        "per_event"
+                    ][results_filename_relative_to_results_folder] = points
         else:
             raise ValueError("Unknown competitor_type: " + competitor_type)
 
         raceml.dump(cache_file, cached_content)
         # print(results["name"], ":", cached_content["payload"])
         tally_board = raceml.deep_add(tally_board, cached_content["payload"])
+
     return tally_board
 
 
-def print_results(tally_board):
+def results_to_html(
+    tally_board,
+    open_database: bool = False,
+    results_folder: pathlib.Path = None,
+    database_lock: raceml.DatabaseLock = None,
+):
+    if open_database:
+        if database_lock is None:
+            raise ValueError("database_lock must be provided if open_database is True")
+        if results_folder is None:
+            raise ValueError("results_folder must be provided if open_database is True")
+        database_lock.check()
+
+    leagues = []
+
     # iterate through leagues
     for league, league_results in tally_board.items():
-        print("#", league)
-        print("Athlete | Points")
-        print("-|-")
+        all_events = set()
+        for athlete_results in league_results.values():
+            for event in athlete_results["per_event"].keys():
+                all_events.add(event)
+
+        if open_database:
+            league_name = raceml.load(data_folder / "leagues" / league)["name"]
+        else:
+            league_name = league
+
+        current_league = {
+            "name": league_name,
+            "results": [],
+        }
+
         for athlete_id, points in sorted(
-            league_results.items(), key=lambda x: x[1], reverse=True
+            league_results.items(), key=lambda x: x[1]["total"], reverse=True
         ):
-            print(athlete_id, "|", points)
-        print()
+            per_event_points = {}
+            for event in all_events:
+                per_event_points[event] = points["per_event"].get(event, None)
+
+            if open_database:
+                athlete_name = lookup_athlete(
+                    athlete_id, data_folder / "athletes", database_lock
+                )["name"]
+            else:
+                athlete_name = athlete_id
+
+            current_league["results"].append(
+                {
+                    "name": athlete_name,
+                    "points": points["total"],
+                    "per_event": per_event_points,
+                }
+            )
+
+        leagues.append(current_league)
+
+    template = jinja2.Template(open("template.html", "r", encoding="utf-8").read())
+
+    # write html file
+    with open("built_results.html", "w", encoding="utf-8") as f:
+        f.write(template.render(leagues=leagues))
 
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
-    tb = tally_data(sys.argv[1])
-    pprint(tb)
-    print_results(tb)
+
+    data_folder = pathlib.Path(sys.argv[1])
+
+    database_lock = raceml.DatabaseLock(data_folder)
+    database_lock.acquire()
+    try:
+        tb = tally_data(data_folder, database_lock)
+        pprint(tb)
+        results_to_html(
+            tb,
+            open_database=True,
+            results_folder=data_folder,
+            database_lock=database_lock,
+        )
+    finally:
+        database_lock.release()
+
     print("Time taken:", datetime.datetime.now() - start_time)

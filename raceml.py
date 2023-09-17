@@ -1,3 +1,4 @@
+import uuid
 import yaml
 import pathlib
 import copy
@@ -94,3 +95,43 @@ def load(filepath, allow_template_only=False, cache=True, file_stream=None):
 def dump(filepath, content):
     with open(filepath, "w", encoding="utf-8") as f:
         yaml.dump(content, f, default_flow_style=False, allow_unicode=True)
+
+
+class DatabaseLock:
+    def __init__(self, database_folder: pathlib.Path or str):
+        if not isinstance(database_folder, pathlib.Path):
+            database_folder = pathlib.Path(database_folder)
+        self.lock_file = database_folder / "sports-scorer.lock"
+        self.program_uuid = uuid.uuid4().bytes
+
+    def acquire(self, raise_on_fail=True) -> bool:
+        if not self.lock_file.exists():
+            with open(self.lock_file, "wb") as f:
+                f.write(self.program_uuid)
+
+        return self.check(raise_on_fail)
+
+    def check(self, raise_on_fail: bool = True) -> bool:
+        if self.lock_file.exists():
+            with open(self.lock_file, "rb") as f:
+                if f.read() == self.program_uuid:
+                    return True
+            if raise_on_fail:
+                raise ValueError(
+                    "Database in use by another instance of sports-scorer."
+                )
+
+        if raise_on_fail:
+            raise ValueError("Lock file doesn't exist.")
+        return False
+
+    def release(self) -> bool:
+        if self.lock_file.exists():
+            we_own = False
+            with open(self.lock_file, "rb") as f:
+                if f.read() == self.program_uuid:
+                    we_own = True
+            if we_own:
+                self.lock_file.unlink()
+                return True
+        return False

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>***REMOVED***</title>
+        <meta name="description" content="***REMOVED***" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+            body {
+                font-family: sans-serif;
+            }
+            table {
+                border-collapse: collapse;
+            }
+            th,
+            td {
+                text-align: center;
+                border: 1px solid;
+            }
+            tbody > tr:nth-child(even) {
+                background-color: #ddd;
+            }
+            th {
+                background-color: powderblue;
+            }
+            @media print {
+                table {
+                page-break-after: always;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        {% for league in leagues %}<p>{{ league }}</p>{% endfor %}
+    </body>
+</html>

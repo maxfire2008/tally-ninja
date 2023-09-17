@@ -1,3 +1,5 @@
 **/__pycache__/**
 **/.DS_Store
 sample_data/sports-scorer.lock
+sample_data/cache/*.racecache
+built_results.html
