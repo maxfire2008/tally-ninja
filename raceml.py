@@ -1,3 +1,4 @@
+import time
 import uuid
 import yaml
 import pathlib
@@ -98,11 +99,19 @@ def dump(filepath, content):
 
 
 class DatabaseLock:
-    def __init__(self, database_folder: pathlib.Path or str):
+    def __init__(
+        self,
+        database_folder: pathlib.Path or str,
+        cheap_check: int or float or False = 2,
+    ):
         if not isinstance(database_folder, pathlib.Path):
             database_folder = pathlib.Path(database_folder)
         self.lock_file = database_folder / "sports-scorer.lock"
         self.program_uuid = uuid.uuid4().bytes
+
+        self.cheap_check = cheap_check
+        self.last_lock_check = 0
+        self.last_lock_check_result = None
 
     def acquire(self, raise_on_fail=True) -> bool:
         if not self.lock_file.exists():
@@ -112,6 +121,12 @@ class DatabaseLock:
         return self.check(raise_on_fail)
 
     def check(self, raise_on_fail: bool = True) -> bool:
+        if self.cheap_check is not False and isinstance(self.cheap_check, (int, float)):
+            if self.last_lock_check + self.cheap_check < time.time():
+                self.last_lock_check = time.time()
+                self.last_lock_check_result = self.check(raise_on_fail)
+            return self.last_lock_check_result
+
         if self.lock_file.exists():
             with open(self.lock_file, "rb") as f:
                 if f.read() == self.program_uuid:
