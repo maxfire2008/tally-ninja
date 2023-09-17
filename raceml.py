@@ -46,6 +46,8 @@ def deep_add(base, changes):
             new[key] = deep_add(new.get(key, {}), value)
         elif isinstance(value, int):
             new[key] = new.get(key, 0) + value
+        elif isinstance(value, list):
+            new[key] = new.get(key, []) + value
         else:
             new[key] = value
     return new
@@ -102,7 +104,7 @@ class DatabaseLock:
     def __init__(
         self,
         database_folder: pathlib.Path or str,
-        cheap_check: int or float or False = 2,
+        cheap_check: int or float or False = 10,
     ):
         if not isinstance(database_folder, pathlib.Path):
             database_folder = pathlib.Path(database_folder)
@@ -145,6 +147,9 @@ class DatabaseLock:
         return False
 
     def release(self) -> bool:
+        self.last_lock_check_result = None
+        self.last_lock_check = None
+
         if self.lock_file.exists():
             we_own = False
             with open(self.lock_file, "rb") as f:

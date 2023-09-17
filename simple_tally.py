@@ -87,6 +87,17 @@ def number(x) -> int | float:
             return float(x)
 
 
+def extract_int(x, default=None):
+    # get all digits
+    y = ""
+    for i in x:
+        if i in "0123456789":
+            y += i
+    if y:
+        return int(y)
+    return default
+
+
 def rank_display(rank, unique_place=True):
     out = ""
     if not unique_place:
@@ -542,6 +553,8 @@ def tally_data(
     for item in code_folder.glob("*"):
         if not item.is_file():
             continue
+        if item.name in [".DS_Store", "built_results.html"]:
+            continue
         code_hash_items.append(item)
         with open(item, "rb") as file:
             code_hash_items.append(file.read())
@@ -696,12 +709,31 @@ def tally_data(
                         "total"
                     ] += points
 
-                    cached_content["payload"][chosen_league_id][contributes_to][
-                        "per_event"
-                    ][results_filename_relative_to_results_folder] = {
-                        "points": points,
-                        "rank": rank,
-                    }
+                    if chosen_league["league_type"] == "team":
+                        if (
+                            results_filename_relative_to_results_folder
+                            not in cached_content["payload"][chosen_league_id][
+                                contributes_to
+                            ]["per_event"]
+                        ):
+                            cached_content["payload"][chosen_league_id][contributes_to][
+                                "per_event"
+                            ][results_filename_relative_to_results_folder] = []
+                        cached_content["payload"][chosen_league_id][contributes_to][
+                            "per_event"
+                        ][results_filename_relative_to_results_folder].append(
+                            {
+                                "points": points,
+                                "rank": rank,
+                            }
+                        )
+                    else:
+                        cached_content["payload"][chosen_league_id][contributes_to][
+                            "per_event"
+                        ][results_filename_relative_to_results_folder] = {
+                            "points": points,
+                            "rank": rank,
+                        }
         elif competitor_type == "team":
             for team_name, team_result in results["results"].items():
                 eligible_leagues = get_eligible_leagues(
@@ -780,12 +812,32 @@ def tally_data(
                         "total"
                     ] += points
 
-                    cached_content["payload"][chosen_league_id][contributes_to][
-                        "per_event"
-                    ][results_filename_relative_to_results_folder] = {
-                        "points": points,
-                        "rank": rank,
-                    }
+                    if chosen_league["league_type"] == "team":
+                        if (
+                            results_filename_relative_to_results_folder
+                            not in cached_content["payload"][chosen_league_id][
+                                contributes_to
+                            ]["per_event"]
+                        ):
+                            cached_content["payload"][chosen_league_id][contributes_to][
+                                "per_event"
+                            ][results_filename_relative_to_results_folder] = []
+                        cached_content["payload"][chosen_league_id][contributes_to][
+                            "per_event"
+                        ][results_filename_relative_to_results_folder].append(
+                            {
+                                "points": points,
+                                "rank": rank,
+                            }
+                        )
+                    else:
+                        cached_content["payload"][chosen_league_id][contributes_to][
+                            "per_event"
+                        ][results_filename_relative_to_results_folder] = {
+                            "points": points,
+                            "rank": rank,
+                        }
+
         else:
             raise ValueError("Unknown competitor_type: " + competitor_type)
 
@@ -812,7 +864,9 @@ def results_to_html(
     leagues = []
 
     # iterate through leagues
-    for league, league_results in tally_board.items():
+    for league, league_results in sorted(
+        tally_board.items(), key=lambda x: (extract_int(x[0], default=0), x[0])
+    ):
         if open_database:
             league_type = raceml.load(data_folder / "leagues" / league)["league_type"]
         else:
@@ -856,6 +910,7 @@ def results_to_html(
                 ),
             ),
             "results": [],
+            "league_type": league_type,
         }
 
         for athlete_id, points in sorted(
@@ -864,29 +919,101 @@ def results_to_html(
             per_event_points = {}
 
             for event in all_events:
-                mine_unique_place = True
-                for points_other in league_results.values():
-                    if points_other["per_event"].get(event, {}).get("rank") == points[
-                        "per_event"
-                    ].get(event, {}).get("rank"):
-                        mine_unique_place = False
-                        break
-
-                if event in points["per_event"]:
-                    if isinstance(points["per_event"][event]["rank"], int):
-                        rank = points["per_event"][event]["rank"] + 1
-                        rank_to_display = rank_display(rank, mine_unique_place)
+                if league_type == "individual":
+                    if event in points["per_event"]:
+                        mine_unique_place = True
+                        for points_other in league_results.values():
+                            if points_other["per_event"].get(event, {}).get(
+                                "rank"
+                            ) == points["per_event"].get(event, {}).get("rank"):
+                                mine_unique_place = False
+                                break
+                        if isinstance(points["per_event"][event]["rank"], int):
+                            rank = points["per_event"][event]["rank"] + 1
+                            rank_to_display = rank_display(rank, mine_unique_place)
+                        else:
+                            rank_to_display = points["per_event"][event]["rank"]
+                        per_event_points[event] = {
+                            "points": points["per_event"][event]["points"],
+                            "rank": rank_to_display,
+                        }
                     else:
-                        rank_to_display = points["per_event"][event]["rank"]
-                    per_event_points[event] = {
-                        "points": points["per_event"][event]["points"],
-                        "rank": rank_to_display,
-                    }
-                else:
-                    per_event_points[event] = {
-                        "points": 0,
-                        "rank": "-",
-                    }
+                        per_event_points[event] = {
+                            "points": "-",
+                            "rank": "-",
+                        }
+                elif league_type == "team":
+                    if event in points["per_event"]:
+                        if any(
+                            [
+                                isinstance(x.get("rank"), int)
+                                for x in points["per_event"].get(event, [])
+                            ]
+                        ):
+                            mine_unique_place = True
+                            min_rank = min(
+                                [
+                                    x.get("rank")
+                                    for x in filter(
+                                        lambda x: isinstance(x.get("rank"), int),
+                                        points["per_event"].get(event, []),
+                                    )
+                                ]
+                            )
+                            for points_other in league_results.values():
+                                try:
+                                    min_other = min(
+                                        [
+                                            x.get("rank")
+                                            for x in filter(
+                                                lambda x: isinstance(
+                                                    x.get("rank"), int
+                                                ),
+                                                points_other["per_event"].get(
+                                                    event, []
+                                                ),
+                                            )
+                                        ]
+                                    )
+                                except ValueError:
+                                    continue
+
+                                if min_other == min_rank:
+                                    mine_unique_place = False
+                                    break
+                            total_points = sum(
+                                [
+                                    x.get("points")
+                                    for x in points["per_event"].get(event, [])
+                                ]
+                            )
+                            if isinstance(min_rank, int):
+                                rank = min_rank + 1
+                                rank_to_display = rank_display(rank, mine_unique_place)
+                            else:
+                                rank_to_display = min_rank
+                            per_event_points[event] = {
+                                "points": total_points,
+                                "rank": rank_to_display,
+                            }
+                        else:
+                            per_event_points[event] = {
+                                "points": 0,
+                                "rank": ", ".join(
+                                    [
+                                        x.get("rank")
+                                        for x in filter(
+                                            lambda x: x.get("rank") is not None,
+                                            points["per_event"].get(event, []),
+                                        )
+                                    ]
+                                ),
+                            }
+                    else:
+                        per_event_points[event] = {
+                            "points": "-",
+                            "rank": "-",
+                        }
 
             if open_database and league_type == "individual":
                 athlete_name = lookup_athlete(
@@ -934,7 +1061,7 @@ if __name__ == "__main__":
     database_lock.acquire()
     try:
         tb = tally_data(data_folder, database_lock)
-        pprint(tb)
+        pprint(tb["teams.yaml"])
         results_to_html(
             tb,
             open_database=True,
