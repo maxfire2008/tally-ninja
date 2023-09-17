@@ -32,6 +32,40 @@
         </style>
     </head>
     <body>
-        {% for league in leagues %}<p>{{ league }}</p>{% endfor %}
+        {% for league in leagues %}
+            <h1>{{ league["name"] }}</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2" style="border: none; background-color: transparent"></th>
+                        {% for event in league["all_events"] %}<th colspan="2">{{ event[1]["name"] }}</th>{% endfor %}
+                        <th style="border: none; background-color: transparent"></th>
+                    </tr>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Name</th>
+                        {% for event in league["all_events"] %}
+                            <th>Rank</th>
+                            <th>Points</th>
+                        {% endfor %}
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for competitor in league["results"] %}
+                        <tr>
+                            <td>{{ competitor["rank"] }}</td>
+                            <td>{{ competitor["name"] }}</td>
+                            {% for event in league["all_events"] %}
+                                <td>{{ competitor["per_event"][event[0]]["rank"] }}</td>
+                                <td>{{ competitor["per_event"][event[0]]["points"] }}</td>
+                            {% endfor %}
+                            <td>{{ competitor["total"] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- {{ league }} -->
+        {% endfor %}
     </body>
 </html>

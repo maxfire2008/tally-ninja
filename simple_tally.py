@@ -87,6 +87,28 @@ def number(x) -> int | float:
             return float(x)
 
 
+def rank_display(rank, unique_place=True):
+    out = ""
+    if not unique_place:
+        out = "="
+
+    out += str(rank)
+
+    if 10 < rank % 100 < 20:
+        out += "th"
+    else:
+        if rank % 10 == 1:
+            out += "st"
+        elif rank % 10 == 2:
+            out += "nd"
+        elif rank % 10 == 3:
+            out += "rd"
+        else:
+            out += "th"
+
+    return out
+
+
 _athlete_cache = {}
 
 
@@ -241,7 +263,9 @@ def calculate_points(
     chosen_league_id="Unknown",
     results_type="Unknown",
     results_name="Unknown",
+    rank_output=False,
 ):
+    place = None
     contrib_amount = None
 
     if scoring_settings["method"] in ["minus_place"]:
@@ -453,6 +477,15 @@ def calculate_points(
     ):
         contrib_amount = 0
 
+    if athlete_result.get("DNF", False):
+        place = "DNF"
+    elif athlete_result.get("DQ", False):
+        place = "DQ"
+    elif athlete_result.get("DNS", False):
+        place = "DNS"
+
+    if rank_output:
+        return contrib_amount, place
     return contrib_amount
 
 
@@ -628,13 +661,14 @@ def tally_data(
                             "per_event": {},
                         }
 
-                    points = calculate_points(
+                    points, rank = calculate_points(
                         athlete_result,
                         competitors,
                         scoring_settings,
                         chosen_league_id,
                         results["type"],
                         results["name"],
+                        rank_output=True,
                     )
 
                     if (
@@ -654,7 +688,10 @@ def tally_data(
 
                     cached_content["payload"][chosen_league_id][contributes_to][
                         "per_event"
-                    ][results_filename_relative_to_results_folder] = points
+                    ][results_filename_relative_to_results_folder] = {
+                        "points": points,
+                        "rank": rank,
+                    }
         elif competitor_type == "team":
             for team_name, team_result in results["results"].items():
                 eligible_leagues = get_eligible_leagues(
@@ -708,13 +745,14 @@ def tally_data(
                             "per_event": {},
                         }
 
-                    points = calculate_points(
+                    points, rank = calculate_points(
                         team_result,
                         competitors,
                         scoring_settings,
                         chosen_league_id,
                         results["type"],
                         results["name"],
+                        rank_output=True,
                     )
 
                     if (
@@ -734,7 +772,10 @@ def tally_data(
 
                     cached_content["payload"][chosen_league_id][contributes_to][
                         "per_event"
-                    ][results_filename_relative_to_results_folder] = points
+                    ][results_filename_relative_to_results_folder] = {
+                        "points": points,
+                        "rank": rank,
+                    }
         else:
             raise ValueError("Unknown competitor_type: " + competitor_type)
 
@@ -762,10 +803,19 @@ def results_to_html(
 
     # iterate through leagues
     for league, league_results in tally_board.items():
-        all_events = set()
+        all_events = {}
         for athlete_results in league_results.values():
             for event in athlete_results["per_event"].keys():
-                all_events.add(event)
+                if open_database:
+                    event_name = raceml.load(results_folder / "results" / event)["name"]
+                    event_date = raceml.load(results_folder / "results" / event)["date"]
+                else:
+                    event_name = event
+                    event_date = None
+                all_events[event] = {
+                    "name": event_name,
+                    "date": event_date,
+                }
 
         if open_database:
             league_name = raceml.load(data_folder / "leagues" / league)["name"]
@@ -774,6 +824,9 @@ def results_to_html(
 
         current_league = {
             "name": league_name,
+            "all_events": sorted(
+                all_events.items(), key=lambda x: (x[1]["date"], x[1]["name"], x[0])
+            ),
             "results": [],
         }
 
@@ -781,8 +834,31 @@ def results_to_html(
             league_results.items(), key=lambda x: x[1]["total"], reverse=True
         ):
             per_event_points = {}
+
             for event in all_events:
-                per_event_points[event] = points["per_event"].get(event, None)
+                mine_unique_place = True
+                for points_other in league_results.values():
+                    if points_other["per_event"].get(event, {}).get("rank") == points[
+                        "per_event"
+                    ].get(event, {}).get("rank"):
+                        mine_unique_place = False
+                        break
+
+                if event in points["per_event"]:
+                    if isinstance(points["per_event"][event]["rank"], int):
+                        rank = points["per_event"][event]["rank"] + 1
+                        rank_to_display = rank_display(rank, mine_unique_place)
+                    else:
+                        rank_to_display = points["per_event"][event]["rank"]
+                    per_event_points[event] = {
+                        "points": points["per_event"][event]["points"],
+                        "rank": rank_to_display,
+                    }
+                else:
+                    per_event_points[event] = {
+                        "points": 0,
+                        "rank": "-",
+                    }
 
             if open_database:
                 athlete_name = lookup_athlete(
@@ -791,10 +867,23 @@ def results_to_html(
             else:
                 athlete_name = athlete_id
 
+            # get rank for athlete
+            rank = 1
+            rank_unique_place = True
+            for other_athlete_id, points_other in league_results.items():
+                if points_other["total"] > points["total"]:
+                    rank += 1
+                if (
+                    points_other["total"] == points["total"]
+                    and other_athlete_id != athlete_id
+                ):
+                    rank_unique_place = False
+
             current_league["results"].append(
                 {
                     "name": athlete_name,
-                    "points": points["total"],
+                    "total": points["total"],
+                    "rank": rank_display(rank, rank_unique_place),
                     "per_event": per_event_points,
                 }
             )
