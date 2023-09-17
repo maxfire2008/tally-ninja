@@ -109,6 +109,10 @@ def rank_display(rank, unique_place=True):
     return out
 
 
+def get_keys_from_dict_list(dict_list, key):
+    return [d.get(key) for d in dict_list]
+
+
 _athlete_cache = {}
 
 
@@ -150,6 +154,9 @@ def get_days_events(
     date, results_folder: pathlib.Path, database_lock: raceml.DatabaseLock
 ):
     database_lock.check()
+
+    if isinstance(date, datetime.datetime):
+        date = date.date()
 
     if date in _days_events_cache:
         return _days_events_cache[date]
@@ -221,12 +228,15 @@ def get_eligible_leagues(
                     results["date"], results_folder, database_lock
                 ),
             }
-            interpreter = safeeval.SafeEval()
+            interpreter = safeeval.SafeEval(
+                {
+                    "get_keys_from_dict_list": get_keys_from_dict_list,
+                }
+            )
 
             for criterion in league.get("eligibility", []):
                 ast = interpreter.compile(criterion)
                 result = interpreter.execute(ast, env)
-                # print(">>", athlete, criterion, result)
                 if not result:
                     athlete_eligible = False
                     break
@@ -803,6 +813,11 @@ def results_to_html(
 
     # iterate through leagues
     for league, league_results in tally_board.items():
+        if open_database:
+            league_type = raceml.load(data_folder / "leagues" / league)["league_type"]
+        else:
+            league_type = "individual"
+
         all_events = {}
         for athlete_results in league_results.values():
             for event in athlete_results["per_event"].keys():
@@ -825,7 +840,20 @@ def results_to_html(
         current_league = {
             "name": league_name,
             "all_events": sorted(
-                all_events.items(), key=lambda x: (x[1]["date"], x[1]["name"], x[0])
+                all_events.items(),
+                key=lambda x: (
+                    (
+                        x[1]["date"]
+                        if isinstance(x[1]["date"], datetime.date)
+                        else (
+                            datetime.datetime.fromisoformat(x[1]["date"]).date()
+                            if isinstance(x[1]["date"], str)
+                            else None
+                        )
+                    ),
+                    x[1]["name"],
+                    x[0],
+                ),
             ),
             "results": [],
         }
@@ -860,7 +888,7 @@ def results_to_html(
                         "rank": "-",
                     }
 
-            if open_database:
+            if open_database and league_type == "individual":
                 athlete_name = lookup_athlete(
                     athlete_id, data_folder / "athletes", database_lock
                 )["name"]

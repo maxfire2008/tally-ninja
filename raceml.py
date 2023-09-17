@@ -110,7 +110,7 @@ class DatabaseLock:
         self.program_uuid = uuid.uuid4().bytes
 
         self.cheap_check = cheap_check
-        self.last_lock_check = 0
+        self.last_lock_check = None
         self.last_lock_check_result = None
 
     def acquire(self, raise_on_fail=True) -> bool:
@@ -122,11 +122,15 @@ class DatabaseLock:
 
     def check(self, raise_on_fail: bool = True) -> bool:
         if self.cheap_check is not False and isinstance(self.cheap_check, (int, float)):
-            if self.last_lock_check + self.cheap_check < time.time():
+            if (
+                self.last_lock_check_result is None
+                or self.last_lock_check + self.cheap_check < time.time()
+            ):
                 self.last_lock_check = time.time()
-                self.last_lock_check_result = self.check(raise_on_fail)
+                self.last_lock_check_result = self._check(raise_on_fail)
             return self.last_lock_check_result
 
+    def _check(self, raise_on_fail: bool = True) -> bool:
         if self.lock_file.exists():
             with open(self.lock_file, "rb") as f:
                 if f.read() == self.program_uuid:
