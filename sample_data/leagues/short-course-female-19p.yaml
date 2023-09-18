@@ -1,5 +1,5 @@
 _include: _short-course-19p.yaml
 
-name: Short Course Female (19+)
+name: Duathlon League Female (19+)
 eligibility:
   - athlete_gender=="female"
