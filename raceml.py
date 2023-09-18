@@ -1,3 +1,4 @@
+import io
 import time
 import uuid
 import yaml
@@ -56,7 +57,7 @@ def deep_add(base, changes):
 _file_cache = {}
 
 
-def load(filepath, allow_template_only=False, cache=True, file_stream=None):
+def load(filepath: pathlib.Path or io.TextIOWrapper, allow_template_only=False, cache=True, file_stream=None):
     arg_key = (filepath, allow_template_only)
     if cache and arg_key in _file_cache:
         return _file_cache[arg_key]

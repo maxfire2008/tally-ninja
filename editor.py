@@ -5,6 +5,7 @@ import wx.adv
 import wx.grid
 import wx.lib.scrolledpanel
 import raceml
+import simple_tally
 
 
 class Editor(wx.Frame):
@@ -14,7 +15,7 @@ class Editor(wx.Frame):
 
         self.database = None
         self.database_lock = None
-        self.state = "resultSelectMenu"
+        self.editor_state = None
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -36,7 +37,7 @@ class Editor(wx.Frame):
         # clear the panel
         self.panel.DestroyChildren()
 
-        self.state = "resultSelectMenu"
+        self.editor_state = None
 
         if self.database is None:
             sizer = wx.BoxSizer(wx.VERTICAL)
@@ -97,6 +98,11 @@ class Editor(wx.Frame):
             "&Open Database \tCtrl-O",
             "Open a sports-scorer database",
         )
+        saveResult = fileMenu.Append(
+            -1,
+            "&Save Result \tCtrl+S",
+            "Save the currently open result",
+        )
         closeResult = fileMenu.Append(
             -1,
             "&Close Result \tCtrl-W",
@@ -107,6 +113,9 @@ class Editor(wx.Frame):
         debugMenu = wx.Menu()
         clearWindow = debugMenu.Append(
             -1, "Clear window\tCtrl-L", "self.panel.DestroyChildren()"
+        )
+        UREL = debugMenu.Append(
+            -1, "updateRaceEditorLabels\tCtrl+U", "self.updateRaceEditorLabels()"
         )
         debugMenu.AppendSeparator()
 
@@ -131,8 +140,10 @@ class Editor(wx.Frame):
         # activated then the associated handler function will be called.
         self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
         self.Bind(wx.EVT_MENU, self.OnOpenDatabase, openDatabase)
+        self.Bind(wx.EVT_MENU, self.OnSaveResult, saveResult)
         self.Bind(wx.EVT_MENU, self.OnCloseResult, closeResult)
         self.Bind(wx.EVT_MENU, lambda e: self.panel.DestroyChildren(), clearWindow)
+        self.Bind(wx.EVT_MENU, lambda e: self.updateRaceEditorLabels(), UREL)
 
     def OnExit(self, event: wx.Event) -> None:
         """Close the frame, terminating the application."""
@@ -147,7 +158,7 @@ class Editor(wx.Frame):
 
     def exitDatabase(self) -> None:
         """Close the frame, terminating the application."""
-        if self.state != "resultSelectMenu":
+        if self.editor_state is not None or self.editor_state.get("unsaved"):
             # run OnCloseResult to close the currently open result
             if not self.OnCloseResult():
                 return "cancel"
@@ -241,9 +252,21 @@ class Editor(wx.Frame):
             self.panel.SetSizer(sizer)
             self.panel.Layout()
 
+    def OnSaveResult(self, event: wx.Event = None) -> None:
+        if self.editor_state is not None:
+            self.editor_state.get(
+                "save_function",
+                lambda x: wx.MessageDialog(
+                    self.panel,
+                    "Saving not possible (save_function undefined)",
+                    "Saving failed",
+                    wx.OK | wx.ICON_ERROR,
+                ).ShowModal(),
+            )
+
     def OnCloseResult(self, event: wx.Event = None) -> bool:
         """Closes the currently open result"""
-        if self.state == "unsaved":
+        if self.editor_state is not None or self.editor_state.get("unsaved"):
             # create a dialog box
             dialog = wx.MessageDialog(
                 self.panel,
@@ -254,17 +277,99 @@ class Editor(wx.Frame):
             # if the user clicks yes, close the result
             if dialog.ShowModal() == wx.ID_NO:
                 return False
+        self.editor_state = None
         self.resultSelectMenu()
         return True
 
-    def setUnsaved(self, event: wx.Event = None) -> None:
-        """Sets the state to unsaved"""
-        self.state = "unsaved"
-        print("unsaved")
+    def selectAthlete(self, panel) -> str:
+        # open a dialog box to select the athlete id
+        available_athletes = []
+
+        for athlete in self.database.glob("athletes/**/*.yaml"):
+            athlete_data = raceml.load(athlete)
+            athlete_id = athlete.stem
+            available_athletes.append((athlete_data["name"], athlete_id))
+
+        dialog = wx.SingleChoiceDialog(
+            panel,
+            "Select an athlete",
+            "Select an athlete",
+            [athlete[0] for athlete in available_athletes],
+            style=wx.OK | wx.CENTRE | wx.CHOICEDLG_STYLE,
+        )
+
+        dialog.ShowModal()
+
+        return available_athletes[dialog.GetSelection()][1]
+
+    def updateAthleteName(
+        self, event: wx.Event = None, row_uuid: uuid.UUID = None
+    ) -> None:
+        self.editor_state["unsaved"] = True
+
+        athlete_id = self.selectAthlete(self.panel)
+
+        event_object = event.GetEventObject()
+
+        self.editor_state["table_rows"][row_uuid]["athlete_id"] = athlete_id
+
+        event_object.SetLabel(
+            simple_tally.lookup_athlete(
+                athlete_id, self.database / "athletes", self.database_lock
+            )["name"]
+        )
+
+        self.updateRaceEditorLabels()
+
+    def updateRaceEditorTime(
+        self, event: wx.Event = None, row_uuid: uuid.UUID = None
+    ) -> None:
+        self.editor_state["unsaved"] = True
+        # print the widget that was changed and its new value
+        if event is not None:
+            print(event.GetEventObject(), event.GetEventObject().GetValue())
+            # if it's one of the time inputs, get the athlete name
+            if isinstance(event.GetEventObject(), wx.TextCtrl):
+                pass
+
+    def updateRaceEditorLabels(self) -> None:
+        if self.editor_state is None:
+            return
+        athlete_ids = {}
+
+        for row_uuid_check, row_content in self.editor_state["table_rows"].items():
+            row_athlete_id = row_content["athlete_id"]
+            if row_athlete_id not in athlete_ids:
+                athlete_ids[row_athlete_id] = 0
+            athlete_ids[row_athlete_id] += 1
+
+        for row_uuid_check, row_content in self.editor_state["table_rows"].items():
+            row_athlete_id = row_content["athlete_id"]
+            if athlete_ids[row_athlete_id] > 1:
+                print(row_athlete_id, "has duplicates")
+                row_content["athlete_name_button"].SetLabel(
+                    "!"
+                    + simple_tally.lookup_athlete(
+                        row_athlete_id, self.database / "athletes", self.database_lock
+                    )["name"]
+                )
+            else:
+                print(row_athlete_id, "has no duplicates")
+                row_content["athlete_name_button"].SetLabel(
+                    simple_tally.lookup_athlete(
+                        row_athlete_id, self.database / "athletes", self.database_lock
+                    )["name"]
+                )
 
     def raceEditor(self, race_filename: pathlib.Path) -> None:
         with open(race_filename, "r") as f:
             race_data = raceml.load(race_filename, file_stream=f)
+
+        self.editor_state = {
+            "table_rows": {},
+            "save_function": self.raceSaviour,
+            "race_filename": race_filename,
+        }
 
         editor_panel = wx.lib.scrolledpanel.ScrolledPanel(self.panel)
         editor_panel.SetupScrolling(scroll_x=False)
@@ -278,11 +383,13 @@ class Editor(wx.Frame):
 
         name_label = wx.StaticText(editor_panel, label="Name:")
         name_input = wx.TextCtrl(editor_panel, value=race_data["name"])
-        name_input.Bind(wx.EVT_TEXT, self.setUnsaved)
+        name_input.Bind(wx.EVT_TEXT, lambda e: print(e))
+        self.editor_state["name_input"] = name_input
 
         distance_label = wx.StaticText(editor_panel, label="Distance:")
         distance_input = wx.TextCtrl(editor_panel, value=race_data["distance"])
-        distance_input.Bind(wx.EVT_TEXT, self.setUnsaved)
+        distance_input.Bind(wx.EVT_TEXT, lambda e: print(e))
+        self.editor_state["distance_input"] = distance_input
 
         date_label = wx.StaticText(editor_panel, label="Date:")
         date_input = wx.adv.DatePickerCtrl(
@@ -293,7 +400,8 @@ class Editor(wx.Frame):
                 race_data["date"].year,
             ),
         )
-        date_input.Bind(wx.adv.EVT_DATE_CHANGED, self.setUnsaved)
+        date_input.Bind(wx.adv.EVT_DATE_CHANGED, lambda e: print(e))
+        self.editor_state["date_input"] = date_input
 
         # create a box sizer
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -324,11 +432,21 @@ class Editor(wx.Frame):
         results_table = wx.BoxSizer(wx.VERTICAL)
 
         # add the results to the table
-        for athlete_id, result in race_data["results"].items():
+        def add_result(athlete_id, result):
             athlete_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
+            row_uuid = uuid.uuid4()
+
             # create a button with the athlete's name
-            athlete_name = wx.Button(editor_panel, label=athlete_id)
+            athlete_name = wx.Button(
+                editor_panel,
+                label=simple_tally.lookup_athlete(
+                    athlete_id, self.database / "athletes", self.database_lock
+                )["name"],
+            )
+            athlete_name.Bind(
+                wx.EVT_BUTTON, lambda e: self.updateAthleteName(e, row_uuid)
+            )
             athlete_sizer.Add(athlete_name, 1, wx.EXPAND)
 
             # create a text input with the athlete's time
@@ -336,10 +454,22 @@ class Editor(wx.Frame):
                 editor_panel,
                 value=str(result["finish_time"]) if "finish_time" in result else "",
             )
-            time_input.Bind(wx.EVT_TEXT, self.setUnsaved)
+            time_input.Bind(
+                wx.EVT_TEXT, lambda e: self.updateRaceEditorTime(e, row_uuid)
+            )
             athlete_sizer.Add(time_input, 1, wx.EXPAND)
 
+            self.editor_state["table_rows"][row_uuid] = {
+                "athlete_id": athlete_id,
+                "finish_time": result["finish_time"] if "finish_time" in result else "",
+                "athlete_name_button": athlete_name,
+                "time_input": time_input,
+            }
+
             results_table.Add(athlete_sizer, 0, wx.EXPAND)
+
+        for athlete_id, result in race_data["results"].items():
+            add_result(athlete_id, result)
 
         # add the table to the sizer
         sizer.Add(results_table, 1, wx.EXPAND)
@@ -347,6 +477,9 @@ class Editor(wx.Frame):
         # set the sizer
         editor_panel.SetSizer(sizer)
         editor_panel.Layout()
+
+    def raceSaviour(self) -> None:
+        print(self.editor_state)
 
 
 if __name__ == "__main__":
