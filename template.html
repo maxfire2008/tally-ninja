@@ -1,75 +1,79 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <title>***REMOVED***</title>
-        <meta name="description" content="***REMOVED***" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>
-            body {
-                font-family: sans-serif;
-            }
-            table {
-                border-collapse: collapse;
-            }
-            th,
-            td {
-                text-align: center;
-                border: 1px solid;
-            }
-            tbody > tr:nth-child(even) {
-                background-color: #ddd;
-            }
-            th {
-                background-color: powderblue;
-            }
-            @media print {
-                table {
-                page-break-after: always;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        {% for league in leagues %}
-            <h1>{{ league["name"] }}</h1>
-            <table>
-                <thead>
-                    <tr>
-                        <th colspan="3" style="border: none; background-color: transparent"></th>
-                        {% for event in league["all_events"] %}<th colspan="2">{{ event[1]["name"] }}</th>{% endfor %}
-                    </tr>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Name</th>
-                        <th>Total Points</th>
-                        {% for event in league["all_events"] %}
-                            {% if league["league_type"] == "team" %}
-                                <th>Best Rank</th>
-                                <th>Total Points</th>
-                            {% else %}
-                                <th>Rank</th>
-                                <th>Points</th>
-                            {% endif %}
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for competitor in league["results"] %}
-                        <tr>
-                            <td>{{ competitor["rank"] }}</td>
-                            <td>{{ competitor["name"] }}</td>
-                            <td>{{ competitor["total"] }}</td>
-                            {% for event in league["all_events"] %}
-                                <td>{{ competitor["per_event"][event[0]]["rank"] }}</td>
-                                <td>{{ competitor["per_event"][event[0]]["points"] }}</td>
-                            {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <!-- {{ league }} -->
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Results</title>
+    <meta name="description" content="Results" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: center;
+        border: 1px solid;
+      }
+      tbody > tr:nth-child(even) {
+        background-color: #ddd;
+      }
+      th {
+        background-color: powderblue;
+      }
+      @media print {
+        table {
+          page-break-after: always;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% for league in leagues %}
+    <h1>{{ league["name"] }}</h1>
+    <table>
+      <thead>
+        <tr>
+          <th
+            colspan="3"
+            style="border: none; background-color: transparent"
+          ></th>
+          {% for event in league["all_events"] %}
+          <th colspan="2">{{ event[1]["name"] }}</th>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Total Points</th>
+          {% for event in league["all_events"] %} {% if league["league_type"] ==
+          "team" %}
+          <th>Best Rank</th>
+          <th>Total Points</th>
+          {% else %}
+          <th>Rank</th>
+          <th>Points</th>
+          {% endif %} {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for competitor in league["results"] %}
+        <tr>
+          <td>{{ competitor["rank"] }}</td>
+          <td>{{ competitor["name"] }}</td>
+          <td>{{ competitor["total"] }}</td>
+          {% for event in league["all_events"] %}
+          <td>{{ competitor["per_event"][event[0]]["rank"] }}</td>
+          <td>{{ competitor["per_event"][event[0]]["points"] }}</td>
+          {% endfor %}
+        </tr>
         {% endfor %}
-    </body>
+      </tbody>
+    </table>
+    <!-- {{ league }} -->
+    {% endfor %}
+  </body>
 </html>
