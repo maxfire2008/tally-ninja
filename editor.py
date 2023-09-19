@@ -1,11 +1,30 @@
 import pathlib
 import uuid
+import decimal
+
 import wx
 import wx.adv
-import wx.grid
 import wx.lib.scrolledpanel
+
 import raceml
 import simple_tally
+
+
+def milliseconds_to_hhmmss(seconds: decimal.Decimal) -> str:
+    """Converts seconds to a string in the format hh:mm:ss.xxxxxxxx"""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    # do not have hours or minutes if they are 0
+    if hours == 0:
+        if minutes == 0:
+            return "{:.8f}".format(seconds)
+        return "{:02d}:{:.8f}".format(minutes, seconds)
+    return "{:02d}:{:02d}:{:.8f}".format(hours, minutes, seconds)
+
+
+def hhmmss_to_seconds(hhmmss: str) -> decimal.Decimal:
+    pass
 
 
 class Editor(wx.Frame):
@@ -327,17 +346,6 @@ class Editor(wx.Frame):
 
         self.updateRaceEditorLabels()
 
-    def updateRaceEditorTime(
-        self, event: wx.Event = None, row_uuid: uuid.UUID = None
-    ) -> None:
-        self.editor_state["unsaved"] = True
-        # print the widget that was changed and its new value
-        if event is not None:
-            print(event.GetEventObject(), event.GetEventObject().GetValue())
-            # if it's one of the time inputs, get the athlete name
-            if isinstance(event.GetEventObject(), wx.TextCtrl):
-                pass
-
     def updateRaceEditorLabels(self) -> None:
         if self.editor_state is None:
             return
@@ -410,7 +418,6 @@ class Editor(wx.Frame):
             self.editor_state["editor_panel"],
             value=str(result["finish_time"]) if "finish_time" in result else "",
         )
-        time_input.Bind(wx.EVT_TEXT, lambda e: self.updateRaceEditorTime(e, row_uuid))
         # on enter key or shift enter call self.raceEditorMove
         time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorMove(e, row_uuid))
         athlete_sizer.Add(time_input, 1, wx.EXPAND)
