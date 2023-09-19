@@ -309,15 +309,7 @@ class Editor(wx.Frame):
 
         athlete_id = self.selectAthlete(self.panel)
 
-        event_object = event.GetEventObject()
-
         self.editor_state["table_rows"][row_uuid]["athlete_id"] = athlete_id
-
-        event_object.SetLabel(
-            simple_tally.lookup_athlete(
-                athlete_id, self.database / "athletes", self.database_lock
-            )["name"]
-        )
 
         self.updateRaceEditorLabels()
 
@@ -364,7 +356,19 @@ class Editor(wx.Frame):
     def raceEditorMove(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
         # if key was enter
         if event.GetKeyCode() == wx.WXK_RETURN:
-            pass
+            if event.ShiftDown():
+                next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) - 1
+            else:
+                next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) + 1
+
+            # get the abs
+            next_row_uuid_index %= len(self.editor_state["row_order"])
+
+            self.editor_state["table_rows"][
+                self.editor_state["row_order"][next_row_uuid_index]
+            ]["time_input"].SetFocus()
+        elif event.GetKeyCode() == wx.WXK_LEFT:
+            self.updateAthleteName(None, row_uuid)
 
     def raceEditor(self, race_filename: pathlib.Path) -> None:
         with open(race_filename, "r") as f:
@@ -390,6 +394,7 @@ class Editor(wx.Frame):
         name_label = wx.StaticText(editor_panel, label="Name:")
         name_input = wx.TextCtrl(editor_panel, value=race_data["name"])
         name_input.Bind(wx.EVT_TEXT, lambda e: print(e))
+        name_input.SetFocus()
         self.editor_state["name_input"] = name_input
 
         distance_label = wx.StaticText(editor_panel, label="Distance:")
@@ -446,9 +451,7 @@ class Editor(wx.Frame):
             # create a button with the athlete's name
             athlete_name = wx.Button(
                 editor_panel,
-                label=simple_tally.lookup_athlete(
-                    athlete_id, self.database / "athletes", self.database_lock
-                )["name"],
+                label="PENDING",
             )
             athlete_name.Bind(
                 wx.EVT_BUTTON, lambda e: self.updateAthleteName(e, row_uuid)
@@ -479,6 +482,8 @@ class Editor(wx.Frame):
 
         for athlete_id, result in race_data["results"].items():
             add_result(athlete_id, result)
+
+        self.updateRaceEditorLabels()
 
         # add the table to the sizer
         sizer.Add(results_table, 1, wx.EXPAND)
