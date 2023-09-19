@@ -281,7 +281,7 @@ class Editor(wx.Frame):
         self.resultSelectMenu()
         return True
 
-    def selectAthlete(self, panel) -> str:
+    def selectAthlete(self, panel, current_selection) -> str:
         # open a dialog box to select the athlete id
         available_athletes = []
 
@@ -289,6 +289,8 @@ class Editor(wx.Frame):
             athlete_data = raceml.load(athlete)
             athlete_id = athlete.stem
             available_athletes.append((athlete_data["name"], athlete_id))
+
+        available_athletes.append(("NONE", None))
 
         dialog = wx.SingleChoiceDialog(
             panel,
@@ -298,8 +300,17 @@ class Editor(wx.Frame):
             style=wx.OK | wx.CENTRE | wx.CHOICEDLG_STYLE,
         )
 
-        dialog.ShowModal()
+        # get panel scroll distance
+        scroll_distance = panel.GetScrollPos(wx.VERTICAL)
 
+        status = dialog.ShowModal()
+
+        # set panel scroll distance
+        new_scroll_distance = panel.GetScrollPos(wx.VERTICAL)
+        panel.Scroll(0, scroll_distance - new_scroll_distance)
+
+        if status == wx.ID_CANCEL:
+            return current_selection
         return available_athletes[dialog.GetSelection()][1]
 
     def updateAthleteName(
@@ -307,7 +318,10 @@ class Editor(wx.Frame):
     ) -> None:
         self.editor_state["unsaved"] = True
 
-        athlete_id = self.selectAthlete(self.panel)
+        athlete_id = self.selectAthlete(
+            self.editor_state["editor_panel"],
+            self.editor_state["table_rows"][row_uuid]["athlete_id"],
+        )
 
         self.editor_state["table_rows"][row_uuid]["athlete_id"] = athlete_id
 
@@ -337,7 +351,10 @@ class Editor(wx.Frame):
 
         for row_uuid_check, row_content in self.editor_state["table_rows"].items():
             row_athlete_id = row_content["athlete_id"]
-            if athlete_ids[row_athlete_id] > 1:
+            if row_athlete_id is None:
+                row_content["athlete_name_button"].SetLabel("")
+                row_content["athlete_name_button"].SetBackgroundColour(wx.YELLOW)
+            elif athlete_ids[row_athlete_id] > 1:
                 row_content["athlete_name_button"].SetLabel(
                     "!"
                     + simple_tally.lookup_athlete(
@@ -373,6 +390,45 @@ class Editor(wx.Frame):
         elif event_keycode == wx.WXK_RETURN and event.ShiftDown():
             self.updateAthleteName(None, row_uuid)
 
+    def raceEditorAddResult(
+        self, athlete_id: str = None, result: dict = {}, skip_update=False
+    ) -> None:
+        athlete_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        row_uuid = uuid.uuid4()
+
+        # create a button with the athlete's name
+        athlete_name = wx.Button(
+            self.editor_state["editor_panel"],
+            label="PENDING",
+        )
+        athlete_name.Bind(wx.EVT_BUTTON, lambda e: self.updateAthleteName(e, row_uuid))
+        athlete_sizer.Add(athlete_name, 1, wx.EXPAND)
+
+        # create a text input with the athlete's time
+        time_input = wx.TextCtrl(
+            self.editor_state["editor_panel"],
+            value=str(result["finish_time"]) if "finish_time" in result else "",
+        )
+        time_input.Bind(wx.EVT_TEXT, lambda e: self.updateRaceEditorTime(e, row_uuid))
+        # on enter key or shift enter call self.raceEditorMove
+        time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorMove(e, row_uuid))
+        athlete_sizer.Add(time_input, 1, wx.EXPAND)
+
+        self.editor_state["table_rows"][row_uuid] = {
+            "athlete_id": athlete_id,
+            "athlete_name_button": athlete_name,
+            "time_input": time_input,
+        }
+
+        self.editor_state["row_order"].append(row_uuid)
+
+        self.editor_state["results_table_sizer"].Add(athlete_sizer, 0, wx.EXPAND)
+
+        if not skip_update:
+            self.updateRaceEditorLabels()
+            self.editor_state["editor_panel"].FitInside()
+
     def raceEditor(self, race_filename: pathlib.Path) -> None:
         with open(race_filename, "r") as f:
             race_data = raceml.load(race_filename, file_stream=f)
@@ -384,30 +440,38 @@ class Editor(wx.Frame):
             "row_order": [],
         }
 
-        editor_panel = wx.lib.scrolledpanel.ScrolledPanel(self.panel)
-        editor_panel.SetupScrolling(scroll_x=False)
-        editor_panel_resize = lambda event=None: editor_panel.SetSize(
-            self.panel.GetSize()
+        self.editor_state["editor_panel"] = wx.lib.scrolledpanel.ScrolledPanel(
+            self.panel
         )
+        self.editor_state["editor_panel"].SetupScrolling(scroll_x=False)
+        editor_panel_resize = lambda event=None: self.editor_state[
+            "editor_panel"
+        ].SetSize(self.panel.GetSize())
         editor_panel_resize()
         self.panel.Bind(wx.EVT_SIZE, editor_panel_resize)
 
         # race data root keys are name, distance, and date
 
-        name_label = wx.StaticText(editor_panel, label="Name:")
-        name_input = wx.TextCtrl(editor_panel, value=race_data["name"])
+        name_label = wx.StaticText(self.editor_state["editor_panel"], label="Name:")
+        name_input = wx.TextCtrl(
+            self.editor_state["editor_panel"], value=race_data["name"]
+        )
         name_input.Bind(wx.EVT_TEXT, lambda e: print(e))
         name_input.SetFocus()
         self.editor_state["name_input"] = name_input
 
-        distance_label = wx.StaticText(editor_panel, label="Distance:")
-        distance_input = wx.TextCtrl(editor_panel, value=race_data["distance"])
+        distance_label = wx.StaticText(
+            self.editor_state["editor_panel"], label="Distance:"
+        )
+        distance_input = wx.TextCtrl(
+            self.editor_state["editor_panel"], value=race_data["distance"]
+        )
         distance_input.Bind(wx.EVT_TEXT, lambda e: print(e))
         self.editor_state["distance_input"] = distance_input
 
-        date_label = wx.StaticText(editor_panel, label="Date:")
+        date_label = wx.StaticText(self.editor_state["editor_panel"], label="Date:")
         date_input = wx.adv.DatePickerCtrl(
-            editor_panel,
+            self.editor_state["editor_panel"],
             dt=wx.DateTime(
                 race_data["date"].day,
                 race_data["date"].month,
@@ -443,57 +507,24 @@ class Editor(wx.Frame):
         #   a button to delete the athlete
 
         # create a table for the results that is 2 columns wide
-        results_table = wx.BoxSizer(wx.VERTICAL)
+        self.editor_state["results_table_sizer"] = wx.BoxSizer(wx.VERTICAL)
 
         # add the results to the table
-        def add_result(athlete_id, result):
-            athlete_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-            row_uuid = uuid.uuid4()
-
-            # create a button with the athlete's name
-            athlete_name = wx.Button(
-                editor_panel,
-                label="PENDING",
-            )
-            athlete_name.Bind(
-                wx.EVT_BUTTON, lambda e: self.updateAthleteName(e, row_uuid)
-            )
-            athlete_sizer.Add(athlete_name, 1, wx.EXPAND)
-
-            # create a text input with the athlete's time
-            time_input = wx.TextCtrl(
-                editor_panel,
-                value=str(result["finish_time"]) if "finish_time" in result else "",
-            )
-            time_input.Bind(
-                wx.EVT_TEXT, lambda e: self.updateRaceEditorTime(e, row_uuid)
-            )
-            # on enter key or shift enter call self.raceEditorMove
-            time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorMove(e, row_uuid))
-            athlete_sizer.Add(time_input, 1, wx.EXPAND)
-
-            self.editor_state["table_rows"][row_uuid] = {
-                "athlete_id": athlete_id,
-                "athlete_name_button": athlete_name,
-                "time_input": time_input,
-            }
-
-            self.editor_state["row_order"].append(row_uuid)
-
-            results_table.Add(athlete_sizer, 0, wx.EXPAND)
-
         for athlete_id, result in race_data["results"].items():
-            add_result(athlete_id, result)
+            self.raceEditorAddResult(athlete_id, result, skip_update=True)
 
         self.updateRaceEditorLabels()
 
         # add the table to the sizer
-        sizer.Add(results_table, 1, wx.EXPAND)
+        sizer.Add(self.editor_state["results_table_sizer"], 1, wx.EXPAND)
+
+        plus_button = wx.Button(self.editor_state["editor_panel"], label="+")
+        plus_button.Bind(wx.EVT_BUTTON, lambda e: self.raceEditorAddResult())
+        sizer.Add(plus_button, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # set the sizer
-        editor_panel.SetSizer(sizer)
-        editor_panel.Layout()
+        self.editor_state["editor_panel"].SetSizer(sizer)
+        self.editor_state["editor_panel"].Layout()
 
     def raceSaviour(self) -> None:
         print(self.editor_state)
