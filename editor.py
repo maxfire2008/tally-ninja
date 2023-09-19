@@ -361,6 +361,11 @@ class Editor(wx.Frame):
                 )
                 row_content["athlete_name_button"].SetBackgroundColour(wx.NullColour)
 
+    def raceEditorMove(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
+        # if key was enter
+        if event.GetKeyCode() == wx.WXK_RETURN:
+            pass
+
     def raceEditor(self, race_filename: pathlib.Path) -> None:
         with open(race_filename, "r") as f:
             race_data = raceml.load(race_filename, file_stream=f)
@@ -369,6 +374,7 @@ class Editor(wx.Frame):
             "table_rows": {},
             "save_function": self.raceSaviour,
             "race_filename": race_filename,
+            "row_order": [],
         }
 
         editor_panel = wx.lib.scrolledpanel.ScrolledPanel(self.panel)
@@ -457,6 +463,8 @@ class Editor(wx.Frame):
             time_input.Bind(
                 wx.EVT_TEXT, lambda e: self.updateRaceEditorTime(e, row_uuid)
             )
+            # on enter key or shift enter call self.raceEditorMove
+            time_input.Bind(wx.EVT_KEY_DOWN, lambda e: self.raceEditorMove(e, row_uuid))
             athlete_sizer.Add(time_input, 1, wx.EXPAND)
 
             self.editor_state["table_rows"][row_uuid] = {
@@ -464,6 +472,8 @@ class Editor(wx.Frame):
                 "athlete_name_button": athlete_name,
                 "time_input": time_input,
             }
+
+            self.editor_state["row_order"].append(row_uuid)
 
             results_table.Add(athlete_sizer, 0, wx.EXPAND)
 
