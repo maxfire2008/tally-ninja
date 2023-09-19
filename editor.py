@@ -74,7 +74,7 @@ class Editor(wx.Frame):
             # bind double click to openResultEditor
             resultListBox.Bind(wx.EVT_LISTBOX_DCLICK, self.openResultEditor)
             # bind enter key to openResultEditor
-            resultListBox.Bind(wx.EVT_KEY_DOWN, self.openResultEditor)
+            resultListBox.Bind(wx.EVT_KEY_UP, self.openResultEditor)
             sizer.Add(resultListBox, 1, wx.EXPAND)
 
             self.panel.SetSizer(sizer)
@@ -214,7 +214,7 @@ class Editor(wx.Frame):
         if event.GetEventType() == wx.EVT_LISTBOX_DCLICK.typeId:
             event_selected = event.GetString()
         # otherwise, get the selected result from the listbox
-        elif event.GetEventType() == wx.EVT_KEY_DOWN.typeId:
+        elif event.GetEventType() == wx.EVT_KEY_UP.typeId:
             if event.GetKeyCode() in [wx.WXK_RETURN, wx.WXK_SPACE]:
                 if event.GetEventObject().GetSelection() == wx.NOT_FOUND:
                     return
