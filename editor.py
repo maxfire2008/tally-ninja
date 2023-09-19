@@ -365,9 +365,11 @@ class Editor(wx.Frame):
             # get the abs
             next_row_uuid_index %= len(self.editor_state["row_order"])
 
-            self.editor_state["table_rows"][
+            next_input = self.editor_state["table_rows"][
                 self.editor_state["row_order"][next_row_uuid_index]
-            ]["time_input"].SetFocus()
+            ]["time_input"]
+            next_input.SetFocus()
+            next_input.SetInsertionPointEnd()
         elif event_keycode == wx.WXK_LEFT:
             self.updateAthleteName(None, row_uuid)
 
