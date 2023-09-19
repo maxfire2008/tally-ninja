@@ -300,7 +300,7 @@ class Editor(wx.Frame):
         self.resultSelectMenu()
         return True
 
-    def selectAthlete(self, panel, current_selection) -> str:
+    def selectAthlete(self, current_selection) -> str:
         # open a dialog box to select the athlete id
         available_athletes = []
 
@@ -312,21 +312,14 @@ class Editor(wx.Frame):
         available_athletes.append(("NONE", None))
 
         dialog = wx.SingleChoiceDialog(
-            panel,
+            self,
             "Select an athlete",
             "Select an athlete",
             [athlete[0] for athlete in available_athletes],
             style=wx.OK | wx.CENTRE | wx.CHOICEDLG_STYLE,
         )
 
-        # get panel scroll distance
-        scroll_distance = panel.GetScrollPos(wx.VERTICAL)
-
         status = dialog.ShowModal()
-
-        # set panel scroll distance
-        new_scroll_distance = panel.GetScrollPos(wx.VERTICAL)
-        panel.Scroll(0, scroll_distance - new_scroll_distance)
 
         if status == wx.ID_CANCEL:
             return current_selection
@@ -338,7 +331,6 @@ class Editor(wx.Frame):
         self.editor_state["unsaved"] = True
 
         athlete_id = self.selectAthlete(
-            self.editor_state["editor_panel"],
             self.editor_state["table_rows"][row_uuid]["athlete_id"],
         )
 
