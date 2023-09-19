@@ -158,7 +158,7 @@ class Editor(wx.Frame):
 
     def exitDatabase(self) -> None:
         """Close the frame, terminating the application."""
-        if self.editor_state is not None or self.editor_state.get("unsaved"):
+        if self.editor_state is not None and self.editor_state.get("unsaved"):
             # run OnCloseResult to close the currently open result
             if not self.OnCloseResult():
                 return "cancel"
@@ -215,7 +215,7 @@ class Editor(wx.Frame):
             event_selected = event.GetString()
         # otherwise, get the selected result from the listbox
         elif event.GetEventType() == wx.EVT_KEY_DOWN.typeId:
-            if event.GetKeyCode() == wx.WXK_RETURN:
+            if event.GetKeyCode() in [wx.WXK_RETURN, wx.WXK_SPACE]:
                 if event.GetEventObject().GetSelection() == wx.NOT_FOUND:
                     return
                 event_selected = event.GetEventObject().GetStringSelection()
@@ -262,11 +262,11 @@ class Editor(wx.Frame):
                     "Saving failed",
                     wx.OK | wx.ICON_ERROR,
                 ).ShowModal(),
-            )
+            )()
 
     def OnCloseResult(self, event: wx.Event = None) -> bool:
         """Closes the currently open result"""
-        if self.editor_state is not None or self.editor_state.get("unsaved"):
+        if self.editor_state is not None and self.editor_state.get("unsaved"):
             # create a dialog box
             dialog = wx.MessageDialog(
                 self.panel,
@@ -346,20 +346,20 @@ class Editor(wx.Frame):
         for row_uuid_check, row_content in self.editor_state["table_rows"].items():
             row_athlete_id = row_content["athlete_id"]
             if athlete_ids[row_athlete_id] > 1:
-                print(row_athlete_id, "has duplicates")
                 row_content["athlete_name_button"].SetLabel(
                     "!"
                     + simple_tally.lookup_athlete(
                         row_athlete_id, self.database / "athletes", self.database_lock
                     )["name"]
                 )
+                row_content["athlete_name_button"].SetBackgroundColour(wx.RED)
             else:
-                print(row_athlete_id, "has no duplicates")
                 row_content["athlete_name_button"].SetLabel(
                     simple_tally.lookup_athlete(
                         row_athlete_id, self.database / "athletes", self.database_lock
                     )["name"]
                 )
+                row_content["athlete_name_button"].SetBackgroundColour(wx.NullColour)
 
     def raceEditor(self, race_filename: pathlib.Path) -> None:
         with open(race_filename, "r") as f:
@@ -461,7 +461,6 @@ class Editor(wx.Frame):
 
             self.editor_state["table_rows"][row_uuid] = {
                 "athlete_id": athlete_id,
-                "finish_time": result["finish_time"] if "finish_time" in result else "",
                 "athlete_name_button": athlete_name,
                 "time_input": time_input,
             }
