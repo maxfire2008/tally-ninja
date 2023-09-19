@@ -355,11 +355,12 @@ class Editor(wx.Frame):
 
     def raceEditorMove(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
         # if key was enter
-        if event.GetKeyCode() == wx.WXK_RETURN:
-            if event.ShiftDown():
-                next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) - 1
-            else:
+        event_keycode = event.GetKeyCode()
+        if event_keycode == wx.WXK_DOWN or event_keycode == wx.WXK_UP:
+            if event_keycode == wx.WXK_DOWN:
                 next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) + 1
+            else:
+                next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) - 1
 
             # get the abs
             next_row_uuid_index %= len(self.editor_state["row_order"])
@@ -367,7 +368,7 @@ class Editor(wx.Frame):
             self.editor_state["table_rows"][
                 self.editor_state["row_order"][next_row_uuid_index]
             ]["time_input"].SetFocus()
-        elif event.GetKeyCode() == wx.WXK_LEFT:
+        elif event_keycode == wx.WXK_LEFT:
             self.updateAthleteName(None, row_uuid)
 
     def raceEditor(self, race_filename: pathlib.Path) -> None:
