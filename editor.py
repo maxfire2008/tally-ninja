@@ -370,7 +370,7 @@ class Editor(wx.Frame):
             ]["time_input"]
             next_input.SetFocus()
             next_input.SetInsertionPointEnd()
-        elif event_keycode == wx.WXK_LEFT:
+        elif event_keycode == wx.WXK_RETURN and event.ShiftDown():
             self.updateAthleteName(None, row_uuid)
 
     def raceEditor(self, race_filename: pathlib.Path) -> None:
@@ -470,7 +470,7 @@ class Editor(wx.Frame):
                 wx.EVT_TEXT, lambda e: self.updateRaceEditorTime(e, row_uuid)
             )
             # on enter key or shift enter call self.raceEditorMove
-            time_input.Bind(wx.EVT_KEY_DOWN, lambda e: self.raceEditorMove(e, row_uuid))
+            time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorMove(e, row_uuid))
             athlete_sizer.Add(time_input, 1, wx.EXPAND)
 
             self.editor_state["table_rows"][row_uuid] = {
