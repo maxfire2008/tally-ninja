@@ -1,3 +1,4 @@
+import datetime
 import io
 import pathlib
 import uuid
@@ -14,21 +15,41 @@ import raceml
 import simple_tally
 
 
-def milliseconds_to_hhmmss(seconds: decimal.Decimal) -> str:
-    """Converts seconds to a string in the format hh:mm:ss.xxxxxxxx"""
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    seconds = seconds % 60
-    # do not have hours or minutes if they are 0
-    if hours == 0:
-        if minutes == 0:
-            return "{:.8f}".format(seconds)
-        return "{:02d}:{:.8f}".format(minutes, seconds)
-    return "{:02d}:{:02d}:{:.8f}".format(hours, minutes, seconds)
+def milliseconds_to_hhmmss(milliseconds: int) -> str:
+    """Converts milliseconds to a string in the format hh:mm:ss.xxxxxxxx"""
+    if not isinstance(milliseconds, int):
+        raise TypeError("milliseconds must be an int")
+    seconds_total = decimal.Decimal(milliseconds) / 1000
+    hours = seconds_total // 3600
+    minutes = (seconds_total % 3600) // 60
+    seconds = seconds_total % 60 // 1
+    decimal_part = seconds_total % 1
+
+    output = ""
+
+    if hours > 0:
+        output += str(int(hours)) + ":"
+    if minutes > 0:
+        output += str(int(minutes)).zfill(2) + ":"
+    output += str(int(seconds)).zfill(2)
+    if decimal_part > 0:
+        output += str(decimal_part)[1:]
+
+    return output
 
 
-def hhmmss_to_seconds(hhmmss: str) -> decimal.Decimal:
-    pass
+def hhmmss_to_milliseconds(hhmmss: str) -> int:
+    """Converts a string in the format hh:mm:ss.xxx to milliseconds"""
+    if len(str(hhmmss).split(".")[-1]) > 3:
+        raise ValueError("More than 3 digits after the decimal point in " + hhmmss)
+    hhmmss_split = hhmmss.split(":")
+    seconds = decimal.Decimal(hhmmss_split[-1])
+    if len(hhmmss_split) > 1:
+        seconds += decimal.Decimal(hhmmss_split[-2]) * 60
+    if len(hhmmss_split) > 2:
+        seconds += decimal.Decimal(hhmmss_split[-3]) * 3600
+
+    return int(seconds * 1000)
 
 
 class Editor(wx.Frame):
@@ -435,13 +456,31 @@ class Editor(wx.Frame):
         athlete_name.Bind(wx.EVT_BUTTON, lambda e: self.updateAthleteName(e, row_uuid))
         athlete_sizer.Add(athlete_name, 1, wx.EXPAND)
 
+        if "finish_time" not in result:
+            result_string = ""
+            finish_time_uneditable = False
+        else:
+            try:
+                result_string = milliseconds_to_hhmmss(result["finish_time"])
+                finish_time_uneditable = False
+            except TypeError as error:
+                result_string = result["finish_time"]
+                finish_time_uneditable = True
+
         # create a text input with the athlete's time
-        time_input = wx.TextCtrl(
-            self.editor_state["editor_panel"],
-            value=str(result["finish_time"]) if "finish_time" in result else "",
-        )
-        # on enter key or shift enter call self.raceEditorMove
-        time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorKey(e, row_uuid))
+        if not finish_time_uneditable:
+            time_input = wx.TextCtrl(
+                self.editor_state["editor_panel"],
+                value=result_string,
+            )
+            # on enter key or shift enter call self.raceEditorMove
+            time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorKey(e, row_uuid))
+        else:
+            time_input = wx.StaticText(
+                self.editor_state["editor_panel"],
+                label=result_string,
+            )
+
         athlete_sizer.Add(time_input, 1, wx.EXPAND)
 
         delete_button = wx.Button(self.editor_state["editor_panel"], label="🗑️")
@@ -457,6 +496,7 @@ class Editor(wx.Frame):
             "time_input": time_input,
             "delete_button": delete_button,
             "athlete_sizer": athlete_sizer,
+            "finish_time_uneditable": finish_time_uneditable,
         }
 
         self.editor_state["row_order"].append(row_uuid)
@@ -476,6 +516,7 @@ class Editor(wx.Frame):
             "save_function": self.raceSaviour,
             "race_filename": race_filename,
             "row_order": [],
+            "uneditable": [],
         }
 
         self.editor_state["editor_panel"] = wx.lib.scrolledpanel.ScrolledPanel(
@@ -613,23 +654,38 @@ class Editor(wx.Frame):
                 dialog.ShowModal()
                 return
 
+            time_input_value = row_content["time_input"].GetValue()
+
             if row_content["athlete_id"] not in doc["results"]:
                 doc["results"][row_content["athlete_id"]] = {}
-            try:
-                doc["results"][row_content["athlete_id"]][
-                    "finish_time"
-                ] = str(decimal.Decimal(row_content["time_input"].GetValue()))
-            except decimal.InvalidOperation:
-                if "finish_time" in doc["results"][row_content["athlete_id"]]:
+
+            if not row_content["finish_time_uneditable"]:
+                if time_input_value != "":
+                    try:
+                        doc["results"][row_content["athlete_id"]][
+                            "finish_time"
+                        ] = hhmmss_to_milliseconds(time_input_value)
+                    except ValueError as error:
+                        dialog = wx.MessageDialog(
+                            self.panel,
+                            "Invalid time input: " + str(error),
+                            "Invalid time input",
+                            wx.OK | wx.ICON_ERROR,
+                        )
+                        dialog.ShowModal()
+                        return
+                elif "finish_time" in doc["results"][row_content["athlete_id"]]:
                     del doc["results"][row_content["athlete_id"]]["finish_time"]
 
-        for athlete_id in doc["results"].keys():
+        for athlete_id in list(doc["results"].keys()):
             if athlete_id not in athlete_ids:
                 del doc["results"][athlete_id]
 
         doc["name"] = self.editor_state["name_input"].GetValue()
         doc["distance"] = self.editor_state["distance_input"].GetValue()
-        doc["date"] = self.editor_state["date_input"].GetValue().FormatISODate()
+        doc["date"] = datetime.date.fromisoformat(
+            self.editor_state["date_input"].GetValue().FormatISODate()
+        )
 
         # save the file
         with open(self.editor_state["race_filename"], "w", encoding="utf-8") as f:
