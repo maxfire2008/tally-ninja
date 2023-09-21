@@ -39,7 +39,7 @@ class Editor(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         # create a menu bar
-        self.makeMenuBar()
+        self.menuBar = self.makeMenuBar()
 
         # and a status bar
         self.CreateStatusBar()
@@ -163,6 +163,8 @@ class Editor(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnCloseResult, closeResult)
         self.Bind(wx.EVT_MENU, lambda e: self.panel.DestroyChildren(), clearWindow)
         self.Bind(wx.EVT_MENU, lambda e: self.updateRaceEditorLabels(), UREL)
+
+        return menuBar
 
     def OnExit(self, event: wx.Event) -> None:
         """Close the frame, terminating the application."""
@@ -370,25 +372,49 @@ class Editor(wx.Frame):
                 )
                 row_content["athlete_name_button"].SetBackgroundColour(wx.NullColour)
 
-    def raceEditorMove(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
-        # if key was enter
+    def raceEditorKey(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
         event_keycode = event.GetKeyCode()
-        if event_keycode == wx.WXK_DOWN or event_keycode == wx.WXK_UP:
-            if event_keycode == wx.WXK_DOWN:
-                next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) + 1
-            else:
-                next_row_uuid_index = self.editor_state["row_order"].index(row_uuid) - 1
+        if event.ShiftDown():
+            if event_keycode == wx.WXK_RETURN:
+                self.updateAthleteName(None, row_uuid)
+        else:
+            if event_keycode == wx.WXK_DOWN or event_keycode == wx.WXK_UP:
+                event.Skip()
+                if event_keycode == wx.WXK_DOWN:
+                    next_row_uuid_index = (
+                        self.editor_state["row_order"].index(row_uuid) + 1
+                    )
+                else:
+                    next_row_uuid_index = (
+                        self.editor_state["row_order"].index(row_uuid) - 1
+                    )
 
-            # get the abs
-            next_row_uuid_index %= len(self.editor_state["row_order"])
+                # get the abs
+                next_row_uuid_index %= len(self.editor_state["row_order"])
 
-            next_input = self.editor_state["table_rows"][
-                self.editor_state["row_order"][next_row_uuid_index]
-            ]["time_input"]
-            next_input.SetFocus()
-            next_input.SetInsertionPointEnd()
-        elif event_keycode == wx.WXK_RETURN and event.ShiftDown():
-            self.updateAthleteName(None, row_uuid)
+                next_input = self.editor_state["table_rows"][
+                    self.editor_state["row_order"][next_row_uuid_index]
+                ]["time_input"]
+                next_input.SetFocus()
+                next_input.SetInsertionPointEnd()
+
+    def deleteResult(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
+        self.editor_state["unsaved"] = True
+
+        # delete the row from the table
+        self.editor_state["results_table_sizer"].Detach(
+            self.editor_state["table_rows"][row_uuid]["athlete_sizer"]
+        )
+        self.editor_state["table_rows"][row_uuid]["athlete_sizer"].Destroy()
+
+        # delete the elements in the row
+        self.editor_state["table_rows"][row_uuid]["athlete_name_button"].Destroy()
+        self.editor_state["table_rows"][row_uuid]["time_input"].Destroy()
+        self.editor_state["table_rows"][row_uuid]["delete_button"].Destroy()
+
+        del self.editor_state["table_rows"][row_uuid]
+
+        self.editor_state["editor_panel"].FitInside()
 
     def raceEditorAddResult(
         self, athlete_id: str = None, result: dict = {}, skip_update=False
@@ -411,13 +437,22 @@ class Editor(wx.Frame):
             value=str(result["finish_time"]) if "finish_time" in result else "",
         )
         # on enter key or shift enter call self.raceEditorMove
-        time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorMove(e, row_uuid))
+        time_input.Bind(wx.EVT_KEY_UP, lambda e: self.raceEditorKey(e, row_uuid))
         athlete_sizer.Add(time_input, 1, wx.EXPAND)
+
+        delete_button = wx.Button(self.editor_state["editor_panel"], label="🗑️")
+        delete_button.Bind(
+            wx.EVT_BUTTON,
+            lambda e: self.deleteResult(e, row_uuid),
+        )
+        athlete_sizer.Add(delete_button, 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.editor_state["table_rows"][row_uuid] = {
             "athlete_id": athlete_id,
             "athlete_name_button": athlete_name,
             "time_input": time_input,
+            "delete_button": delete_button,
+            "athlete_sizer": athlete_sizer,
         }
 
         self.editor_state["row_order"].append(row_uuid)
@@ -521,7 +556,22 @@ class Editor(wx.Frame):
         plus_button.Bind(wx.EVT_BUTTON, lambda e: self.raceEditorAddResult())
         sizer.Add(plus_button, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
+        # create the menu bar
+        raceEditorMenu = wx.Menu()
+        self.Bind(
+            wx.EVT_MENU,
+            lambda e: self.raceEditorAddResult(),
+            raceEditorMenu.Append(
+                -1,
+                "New result \tCtrl+N",
+                "Add new result",
+            ),
+        )
+
+        self.menuBar.Append(raceEditorMenu, "&Results")
+
         # set the sizer
+        self.editor_state["sizer"] = sizer
         self.editor_state["editor_panel"].SetSizer(sizer)
         self.editor_state["editor_panel"].Layout()
 
