@@ -5,18 +5,18 @@ date: 2023-07-01
 
 results:
   donald_trump:
-    finish_time: 3473 # 7
+    finish_time: "3473.43"
   joe_biden:
-    finish_time: 3382 # 8
+    finish_time: "3382.12"
   kamala_harris:
-    finish_time: 2537 # 10
+    finish_time: "2537.32"
   hillary_clinton:
-    finish_time: 2964 # 9
+    finish_time: "2964.45"
   mitch_mcconnell:
     DNF: true
   nancy_pelosi:
-    finish_time: 2172 # 10
+    finish_time: "2172.18"
   bernie_sanders:
-    finish_time: 9123 # 10
+    finish_time: "9123.85"
   elizabeth_warren:
-    finish_time: 1921 # 10
+    finish_time: "1921.92"

@@ -1,10 +1,14 @@
+import io
 import pathlib
 import uuid
 import decimal
+import warnings
 
 import wx
 import wx.adv
 import wx.lib.scrolledpanel
+import ruamel.yaml
+import ruamel.yaml.error
 
 import raceml
 import simple_tally
@@ -576,7 +580,60 @@ class Editor(wx.Frame):
         self.editor_state["editor_panel"].Layout()
 
     def raceSaviour(self) -> None:
-        print(self.editor_state)
+        reader = ruamel.yaml.YAML()
+        with open(self.editor_state["race_filename"], "r", encoding="utf-8") as f:
+            doc = reader.load(f)
+
+        # check for duplicate athlete ids
+        athlete_ids = {}
+
+        for row_uuid, row_content in self.editor_state["table_rows"].items():
+            if row_content["athlete_id"] is None:
+                dialog = wx.MessageDialog(
+                    self.panel,
+                    "Athlete id is None. Please fix before saving.",
+                    "Athlete id is None",
+                    wx.OK | wx.ICON_ERROR,
+                )
+                dialog.ShowModal()
+                return
+            if row_content["athlete_id"] not in athlete_ids:
+                athlete_ids[row_content["athlete_id"]] = 0
+            athlete_ids[row_content["athlete_id"]] += 1
+
+        for row_uuid, row_content in self.editor_state["table_rows"].items():
+            if athlete_ids.get(row_content["athlete_id"]) > 1:
+                # create a dialog box
+                dialog = wx.MessageDialog(
+                    self.panel,
+                    "Duplicate athlete ids found. Please fix before saving.",
+                    "Duplicate athlete ids",
+                    wx.OK | wx.ICON_ERROR,
+                )
+                dialog.ShowModal()
+                return
+
+            if row_content["athlete_id"] not in doc["results"]:
+                doc["results"][row_content["athlete_id"]] = {}
+            try:
+                doc["results"][row_content["athlete_id"]][
+                    "finish_time"
+                ] = str(decimal.Decimal(row_content["time_input"].GetValue()))
+            except decimal.InvalidOperation:
+                if "finish_time" in doc["results"][row_content["athlete_id"]]:
+                    del doc["results"][row_content["athlete_id"]]["finish_time"]
+
+        for athlete_id in doc["results"].keys():
+            if athlete_id not in athlete_ids:
+                del doc["results"][athlete_id]
+
+        doc["name"] = self.editor_state["name_input"].GetValue()
+        doc["distance"] = self.editor_state["distance_input"].GetValue()
+        doc["date"] = self.editor_state["date_input"].GetValue().FormatISODate()
+
+        # save the file
+        with open(self.editor_state["race_filename"], "w", encoding="utf-8") as f:
+            reader.dump(doc, f)
 
 
 if __name__ == "__main__":
