@@ -55,7 +55,7 @@
                   <th>Points</th>
                 {% endif %}
               {% endfor %}
-              <th>Flags</th>
+              {% if debug_columns %}<th>Flags</th>{% endif %}
             </tr>
           </thead>
           <tbody>
@@ -69,7 +69,7 @@
                     <td>{{ competitor["per_event"][event[0]]["rank"] }}</td>
                     <td>{{ competitor["per_event"][event[0]]["points"] }}</td>
                   {% endfor %}
-                  <td>{{ ",".join(competitor["flags"]) }}</td>
+                  {% if debug_columns %}<td>{{ ",".join(competitor["flags"]) }}</td>{% endif %}
                 </tr>
               {% endif %}
             {% endfor %}

@@ -978,8 +978,15 @@ def results_to_html(
         else:
             league_type = "individual"
 
+        league_results_filtered = {}
+        for athlete_id, athlete_results in league_results.items():
+            if "not_enough_races" in athlete_results["flags"]:
+                continue
+
+            league_results_filtered[athlete_id] = athlete_results
+
         all_events = {}
-        for athlete_results in league_results.values():
+        for athlete_results in league_results_filtered.values():
             for event in athlete_results["per_event"].keys():
                 if open_database:
                     event_name = raceml.load(results_folder / "results" / event)["name"]
@@ -1020,7 +1027,7 @@ def results_to_html(
         }
 
         for athlete_id, points in sorted(
-            league_results.items(), key=lambda x: x[1]["total"], reverse=True
+            league_results_filtered.items(), key=lambda x: x[1]["total"], reverse=True
         ):
             per_event_points = {}
 
@@ -1028,7 +1035,7 @@ def results_to_html(
                 if league_type == "individual":
                     if event in points["per_event"]:
                         mine_unique_place = True
-                        for points_other in league_results.values():
+                        for points_other in league_results_filtered.values():
                             if points_other["per_event"].get(event, {}).get(
                                 "rank"
                             ) == points["per_event"].get(event, {}).get("rank"):
@@ -1066,7 +1073,7 @@ def results_to_html(
                                     )
                                 ]
                             )
-                            for points_other in league_results.values():
+                            for points_other in league_results_filtered.values():
                                 try:
                                     min_other = min(
                                         [
@@ -1131,7 +1138,7 @@ def results_to_html(
             # get rank for athlete
             rank = 1
             rank_unique_place = True
-            for other_athlete_id, points_other in league_results.items():
+            for other_athlete_id, points_other in league_results_filtered.items():
                 if points_other["total"] > points["total"]:
                     rank += 1
                 if (
