@@ -52,11 +52,9 @@ def import_students(file, output, year, database_lock):
             )
             student_raceml["email"] = student["email"]
             # convert from DD-MM-YYYY to ISO 8601
-            student_raceml["dob"] = (
-                datetime.datetime.strptime(student["dob"], "%d-%m-%Y")
-                .date()
-                .isoformat()
-            )
+            student_raceml["dob"] = datetime.datetime.strptime(
+                student["dob"], "%d-%m-%Y"
+            ).date()
 
             student_raceml["gender"] = student["gender"]
             student_raceml["team"] = student["team"]
@@ -128,7 +126,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                     "distance": event_distance + "m",
                     "gender": event_gender,
                     "ystart": year - int(event_year),
-                    "date": date_start.isoformat(),
+                    "date": date_start,
                     "results": {},
                 }
 
@@ -200,7 +198,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                     + f" Year {event_year} {event_gender}",
                     "gender": event_gender,
                     "ystart": year - int(event_year),
-                    "date": date_start.isoformat(),
+                    "date": date_start,
                     "results": {},
                 }
 
@@ -282,7 +280,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                     "name": f"High jump Year {event_year} {event_gender}",
                     "gender": event_gender,
                     "ystart": year - int(event_year),
-                    "date": date_start.isoformat(),
+                    "date": date_start,
                     "results": {},
                 }
 
@@ -355,7 +353,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                     "distance": event_distance + "m",
                     "gender": event_gender,
                     "ystart": year - int(event_year),
-                    "date": date_start.isoformat(),
+                    "date": date_start,
                     "results": {},
                 }
 
