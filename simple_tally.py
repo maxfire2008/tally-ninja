@@ -277,6 +277,91 @@ def get_eligible_leagues(
     return eligible_leagues
 
 
+_athlete_races_cache = {}
+
+
+def get_races_for_athlete(
+    athlete_id: str,
+    data_folder: pathlib.Path,
+    database_lock: raceml.DatabaseLock,
+):
+    database_lock.check()
+
+    arg_key = repr((athlete_id, data_folder))
+    if arg_key in _athlete_races_cache:
+        return _athlete_races_cache[arg_key]
+
+    races = {}
+
+    for results_filename in data_folder.glob("results/**/*.yaml"):
+        # open the results file
+        results = raceml.load(results_filename)
+
+        # get the athlete's result
+        athlete_result = results["results"].get(athlete_id, None)
+        if athlete_result is not None:
+            races[str(results_filename.relative_to(data_folder))] = results
+
+    return races
+
+
+_athlete_flags_cache = {}
+
+
+def get_athlete_flags(
+    athlete_id: str,
+    athlete: dict,
+    league: dict,
+    data_folder: pathlib.Path,
+    database_lock: raceml.DatabaseLock,
+):
+    database_lock.check()
+
+    arg_key = repr((athlete_id, league, data_folder))
+    if arg_key in _athlete_flags_cache:
+        return _athlete_flags_cache[arg_key]
+
+    flags = []
+    for flag in league.get("flags", []):
+        env = {
+            "races_count": len(
+                get_races_for_athlete(athlete_id, data_folder, database_lock)
+            ),
+            "races_count_in_league": len(
+                list(
+                    filter(
+                        lambda race: get_eligible_leagues(
+                            athlete,
+                            race,
+                            data_folder / "leagues",
+                            data_folder / "results",
+                            database_lock,
+                        ),
+                        get_races_for_athlete(
+                            athlete_id,
+                            data_folder,
+                            database_lock,
+                        ).values(),
+                    )
+                )
+            ),
+        }
+
+        interpreter = safeeval.SafeEval(
+            {
+                "get_keys_from_dict_list": get_keys_from_dict_list,
+            }
+        )
+
+        ast = interpreter.compile(flag["expression"])
+        result = interpreter.execute(ast, env)
+        if result:
+            flags.append(flag["name"])
+
+    _athlete_flags_cache[arg_key] = flags
+    return flags
+
+
 def calculate_points(
     athlete_result,
     competitors,
@@ -637,6 +722,14 @@ def tally_data(
                         )
                     )
 
+                    flags = get_athlete_flags(
+                        athlete_id,
+                        athlete,
+                        chosen_league,
+                        data_folder,
+                        database_lock,
+                    )
+
                     if chosen_league["league_type"] == "individual":
                         contributes_to = athlete_id
                     elif chosen_league["league_type"] == "team":
@@ -725,6 +818,7 @@ def tally_data(
                             {
                                 "points": points,
                                 "rank": rank,
+                                "flags": [f"{f} for {athlete_id}" for f in flags],
                             }
                         )
                     else:
@@ -733,6 +827,7 @@ def tally_data(
                         ][results_filename_relative_to_results_folder] = {
                             "points": points,
                             "rank": rank,
+                            "flags": flags,
                         }
         elif competitor_type == "team":
             for team_name, team_result in results["results"].items():
@@ -845,6 +940,15 @@ def tally_data(
         # print(results["name"], ":", cached_content["payload"])
         tally_board = raceml.deep_add(tally_board, cached_content["payload"])
 
+    for league_id, league_results in tally_board.items():
+        for athlete_id, athlete_results in league_results.items():
+            athlete_flags = set()
+            for event_id, event_results in athlete_results["per_event"].items():
+                athlete_flags.update(event_results.get("flags", []))
+                if "flags" in event_results:
+                    del event_results["flags"]
+            athlete_results["flags"] = list(athlete_flags)
+
     return tally_board
 
 
@@ -861,12 +965,14 @@ def results_to_html(
             raise ValueError("results_folder must be provided if open_database is True")
         database_lock.check()
 
-    leagues = []
+    leagues = {}
+    league_total_points = {}
 
     # iterate through leagues
     for league, league_results in sorted(
         tally_board.items(), key=lambda x: (extract_int(x[0], default=0), x[0])
     ):
+        league_total_points[league] = 0
         if open_database:
             league_type = raceml.load(data_folder / "leagues" / league)["league_type"]
         else:
@@ -1034,22 +1140,27 @@ def results_to_html(
                 ):
                     rank_unique_place = False
 
+            league_total_points[league] += points["total"]
+
             current_league["results"].append(
                 {
                     "name": athlete_name,
                     "total": points["total"],
                     "rank": rank_display(rank, rank_unique_place),
                     "per_event": per_event_points,
+                    "flags": points["flags"],
                 }
             )
 
-        leagues.append(current_league)
+        leagues[league] = current_league
 
     template = jinja2.Template(open("template.html", "r", encoding="utf-8").read())
 
     # write html file
     with open("built_results.html", "w", encoding="utf-8") as f:
-        f.write(template.render(leagues=leagues))
+        f.write(
+            template.render(leagues=leagues, league_total_points=league_total_points)
+        )
 
 
 if __name__ == "__main__":
@@ -1061,7 +1172,7 @@ if __name__ == "__main__":
     database_lock.acquire()
     try:
         tb = tally_data(data_folder, database_lock)
-        pprint(tb["teams.yaml"])
+        pprint(tb)
         results_to_html(
             tb,
             open_database=True,

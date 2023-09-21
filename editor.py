@@ -40,7 +40,7 @@ def milliseconds_to_hhmmss(milliseconds: int) -> str:
 
 def hhmmss_to_milliseconds(hhmmss: str) -> int:
     """Converts a string in the format hh:mm:ss.xxx to milliseconds"""
-    if len(str(hhmmss).split(".")[-1]) > 3:
+    if len(str(hhmmss).split(".")) >= 2 and len(str(hhmmss).split(".")[-1]) > 3:
         raise ValueError("More than 3 digits after the decimal point in " + hhmmss)
     hhmmss_split = hhmmss.split(":")
     seconds = decimal.Decimal(hhmmss_split[-1])
