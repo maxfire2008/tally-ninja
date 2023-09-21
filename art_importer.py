@@ -8,6 +8,7 @@ import pandas
 import simple_tally
 import shutil
 import time
+import raceml
 
 
 def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
@@ -64,15 +65,26 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
         athlete_result = {}
 
         if row["Finishing Time (in seconds)"]:
-            athlete_result["finish_time"] = simple_tally.number(
-                row["Finishing Time (in seconds)"]
+            # "Race Start Date/Time": "10/09/2023 09:37:23.000"
+            # "Finish Date/Time": "10/09/2023 12:10:01.144"
+
+            start_dt = datetime.datetime.strptime(
+                row["Race Start Date/Time"], "%d/%m/%Y %H:%M:%S.%f"
+            )
+            finish_dt = datetime.datetime.strptime(
+                row["Finish Date/Time"], "%d/%m/%Y %H:%M:%S.%f"
+            )
+
+            # result in milliseconds
+            athlete_result["finish_time"] = int(
+                (finish_dt - start_dt).total_seconds() * 1000
             )
 
         if sanitized_name in race_results.values():
             raise ValueError(f"Duplicate athlete name: {sanitized_name}")
         else:
             if not row["Finishing Time (in seconds)"]:
-                if row["Finishing Time"] in ["DNS", "DNF"]:
+                if row["Finishing Time"] in ["DNS", "DNF", "DQ"]:
                     athlete_result[row["Finishing Time"]] = True
                 elif row["Laps Remaining"] != "0":
                     print(f"Missing finish time for {sanitized_name}, {row}")
@@ -139,7 +151,13 @@ def process_folder(input_folder, data_folder):
 
 
 if __name__ == "__main__":
-    process_folder(
-        "../sport-scorer-sample-data/trisouth_art_exports/",
-        "../sport-scorer-sample-data/art/",
-    )
+    database_lock = raceml.DatabaseLock("../sport-scorer-sample-data/art/")
+    database_lock.acquire()
+
+    try:
+        process_folder(
+            "../sport-scorer-sample-data/trisouth_art_exports/",
+            "../sport-scorer-sample-data/art/",
+        )
+    finally:
+        database_lock.release()

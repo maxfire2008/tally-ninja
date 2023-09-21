@@ -7,9 +7,10 @@ import re
 import yaml
 import pandas
 import simple_tally
+import raceml
 
 
-def import_students(file, output, year):
+def import_students(file, output, year, database_lock):
     if not isinstance(file, pathlib.Path):
         file = pathlib.Path(file).resolve()
     if not file.exists():
@@ -95,7 +96,7 @@ def import_students(file, output, year):
                     break
 
 
-def import_results(file, athletes_directory, output, year):
+def import_results(file, athletes_directory, output, year, database_lock):
     if not isinstance(athletes_directory, pathlib.Path):
         athletes_directory = pathlib.Path(athletes_directory).resolve()
     if not athletes_directory.exists():
@@ -147,26 +148,28 @@ def import_results(file, athletes_directory, output, year):
                     )
 
                     # ensure that the athlete exists
-                    simple_tally.lookup_athlete(filename, athletes_directory)
+                    simple_tally.lookup_athlete(
+                        filename, athletes_directory, database_lock
+                    )
 
-                    result_in_seconds = None
+                    result_in_milliseconds = None
                     if re.match(r"^[0-9]+m [0-9]+s [0-9]+ms$", result):
                         result_split = result.split(" ")
-                        result_in_seconds = (
-                            int(result_split[0][:-1]) * 60
-                            + int(result_split[1][:-1])
-                            + int(result_split[2][:-2]) / 1000
+                        result_in_milliseconds = (
+                            int(result_split[0][:-1]) * 60 * 1000
+                            + int(result_split[1][:-1]) * 1000
+                            + int(result_split[2][:-2])
                         )
                     elif re.match(r"^[0-9]+s [0-9]+ms$", result):
                         result_split = result.split(" ")
-                        result_in_seconds = (
-                            int(result_split[0][:-1]) + int(result_split[1][:-2]) / 1000
+                        result_in_milliseconds = int(result_split[0][:-1]) * 1000 + int(
+                            result_split[1][:-2]
                         )
                     else:
                         print(f"Invalid result: {result}")
 
                     current_result_json = {
-                        "finish_time": result_in_seconds,
+                        "finish_time": result_in_milliseconds,
                         "_debug_points": points,
                     }
                     try:
@@ -214,7 +217,9 @@ def import_results(file, athletes_directory, output, year):
                         + str(event_json["ystart"])
                         # + "*"
                     )
-                    simple_tally.lookup_athlete(filename, athletes_directory)
+                    simple_tally.lookup_athlete(
+                        filename, athletes_directory, database_lock
+                    )
 
                     # 1 4m 60cm2 metersm centimeterscm3 metersm centimeterscm
                     # 1: 4600
@@ -294,7 +299,9 @@ def import_results(file, athletes_directory, output, year):
                         + str(event_json["ystart"])
                         # + "*"
                     )
-                    athlete = simple_tally.lookup_athlete(filename, athletes_directory)
+                    athlete = simple_tally.lookup_athlete(
+                        filename, athletes_directory, database_lock
+                    )
 
                     current_result = {}
 
@@ -427,15 +434,23 @@ def import_results(file, athletes_directory, output, year):
 
 
 if __name__ == "__main__":
-    import_students(
-        "../sport-scorer-sample-data/students.csv",
-        "../sport-scorer-sample-data/***REMOVED***/athletes/sta/",
-        2023,
-    )
+    database_lock = raceml.DatabaseLock("../sport-scorer-sample-data/***REMOVED***/")
+    database_lock.acquire()
 
-    import_results(
-        "../sport-scorer-sample-data/***REMOVED*** Athletics Carnival 2023-results.xlsx",
-        "../sport-scorer-sample-data/***REMOVED***/athletes/",
-        "../sport-scorer-sample-data/***REMOVED***/results/",
-        2023,
-    )
+    try:
+        import_students(
+            "../sport-scorer-sample-data/students.csv",
+            "../sport-scorer-sample-data/***REMOVED***/athletes/sta/",
+            2023,
+            database_lock,
+        )
+
+        import_results(
+            "../sport-scorer-sample-data/***REMOVED*** Athletics Carnival 2023-results.xlsx",
+            "../sport-scorer-sample-data/***REMOVED***/athletes/",
+            "../sport-scorer-sample-data/***REMOVED***/results/",
+            2023,
+            database_lock,
+        )
+    finally:
+        database_lock.release()
