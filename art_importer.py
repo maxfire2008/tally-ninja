@@ -38,9 +38,7 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
         athlete_data = {
             "name": (row["First Name"] + " " + row["Last Name"]).title(),
             "gender": row["Sex"].lower(),
-            "dob": datetime.datetime.strptime(row["DOB"], "%d/%m/%Y")
-            .date()
-            .isoformat(),
+            "dob": datetime.datetime.strptime(row["DOB"], "%d/%m/%Y").date(),
             "email": row["Email"],
         }
 

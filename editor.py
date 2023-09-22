@@ -81,7 +81,7 @@ class Editor(wx.Frame):
         # clear the panel
         self.panel.DestroyChildren()
 
-        self.editor_state = None
+        self.exitRaceEditor()
 
         if self.database is None:
             sizer = wx.BoxSizer(wx.VERTICAL)
@@ -106,10 +106,12 @@ class Editor(wx.Frame):
             sizer = wx.BoxSizer(wx.VERTICAL)
 
             # create a list of files in self.database / results
-            results = [
-                str(filename.relative_to(self.database / "results"))[:-5]
-                for filename in self.database.glob("results/**/*.yaml")
-            ]
+            results = sorted(
+                [
+                    str(filename.relative_to(self.database / "results"))[:-5]
+                    for filename in self.database.glob("results/**/*.yaml")
+                ]
+            )
 
             # create a listbox with the results
             resultListBox = wx.ListBox(self.panel, choices=results)
@@ -316,14 +318,14 @@ class Editor(wx.Frame):
             # create a dialog box
             dialog = wx.MessageDialog(
                 self.panel,
-                "You have unsaved changes. Are you sure you want to close this result?",
+                "You have unsaved changes. Cancel exiting?",
                 "Unsaved Changes",
                 wx.YES_NO | wx.ICON_QUESTION,
             )
             # if the user clicks yes, close the result
-            if dialog.ShowModal() == wx.ID_NO:
+            if dialog.ShowModal() == wx.ID_YES:
                 return False
-        self.editor_state = None
+        self.exitRaceEditor()
         self.resultSelectMenu()
         return True
 
@@ -507,6 +509,15 @@ class Editor(wx.Frame):
             self.updateRaceEditorLabels()
             self.editor_state["editor_panel"].FitInside()
 
+    def exitRaceEditor(self) -> None:
+        if self.editor_state is not None and "cleanup_function" in self.editor_state:
+            self.editor_state["cleanup_function"]()
+        self.editor_state = None
+
+    def raceEditorCleanup(self) -> None:
+        if self.editor_state is not None and "raceEditorMenu" in self.editor_state:
+            self.menuBar.Remove(self.menuBar.FindMenu("&Results"))
+
     def raceEditor(self, race_filename: pathlib.Path) -> None:
         with open(race_filename, "r") as f:
             race_data = raceml.load(race_filename, file_stream=f)
@@ -517,6 +528,7 @@ class Editor(wx.Frame):
             "race_filename": race_filename,
             "row_order": [],
             "uneditable": [],
+            "cleanup_function": self.raceEditorCleanup,
         }
 
         self.editor_state["editor_panel"] = wx.lib.scrolledpanel.ScrolledPanel(
@@ -614,6 +626,8 @@ class Editor(wx.Frame):
         )
 
         self.menuBar.Append(raceEditorMenu, "&Results")
+
+        self.editor_state["raceEditorMenu"] = raceEditorMenu
 
         # set the sizer
         self.editor_state["sizer"] = sizer
