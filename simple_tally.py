@@ -330,13 +330,15 @@ def get_athlete_flags(
             "races_count_in_league": len(
                 list(
                     filter(
-                        lambda race: get_eligible_leagues(
+                        lambda race: league
+                        in get_eligible_leagues(
                             athlete,
                             race,
                             data_folder / "leagues",
                             data_folder / "results",
                             database_lock,
-                        ),
+                        )
+                        and not race["results"].get(athlete_id, {}).get("DNS", False),
                         get_races_for_athlete(
                             athlete_id,
                             data_folder,
