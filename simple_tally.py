@@ -946,9 +946,15 @@ def tally_data(
         for athlete_id, athlete_results in league_results.items():
             athlete_flags = set()
             for event_id, event_results in athlete_results["per_event"].items():
-                athlete_flags.update(event_results.get("flags", []))
-                if "flags" in event_results:
-                    del event_results["flags"]
+                if isinstance(event_results, dict):
+                    athlete_flags.update(event_results.get("flags", []))
+                    if "flags" in event_results:
+                        del event_results["flags"]
+                elif isinstance(event_results, list):
+                    for event_result in event_results:
+                        athlete_flags.update(event_result.get("flags", []))
+                        if "flags" in event_result:
+                            del event_result["flags"]
             athlete_results["flags"] = list(athlete_flags)
 
     return tally_board
