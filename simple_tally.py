@@ -1017,10 +1017,12 @@ def results_to_html(
                 if league_type == "individual":
                     if event in points["per_event"]:
                         mine_unique_place = True
-                        for points_other in league_results_filtered.values():
+                        for other_id, points_other in league_results_filtered.items():
                             if points_other["per_event"].get(event, {}).get(
                                 "rank"
-                            ) == points["per_event"].get(event, {}).get("rank"):
+                            ) == points["per_event"].get(event, {}).get("rank") and (
+                                other_id != athlete_id
+                            ):
                                 mine_unique_place = False
                                 break
                         if isinstance(points["per_event"][event]["rank"], int):
@@ -1055,7 +1057,10 @@ def results_to_html(
                                     )
                                 ]
                             )
-                            for points_other in league_results_filtered.values():
+                            for (
+                                other_id,
+                                points_other,
+                            ) in league_results_filtered.items():
                                 try:
                                     min_other = min(
                                         [
@@ -1073,7 +1078,7 @@ def results_to_html(
                                 except ValueError:
                                     continue
 
-                                if min_other == min_rank:
+                                if min_other == min_rank and other_id != athlete_id:
                                     mine_unique_place = False
                                     break
                             total_points = sum(
