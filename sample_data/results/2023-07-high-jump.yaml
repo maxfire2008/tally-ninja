@@ -29,6 +29,9 @@ results:
   clive_palmer:
     heights:
       1200:
+        - true
+      1250:
+        - true
+      1300:
         - false
-        - false
-        - false
+        - true
