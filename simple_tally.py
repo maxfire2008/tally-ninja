@@ -1175,7 +1175,10 @@ def results_to_html(
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
 
-    data_folder = pathlib.Path(sys.argv[1])
+    if len(sys.argv) > 1:
+        data_folder = pathlib.Path(sys.argv[1])
+    else:
+        data_folder = pathlib.Path(input("PATH:"))
 
     database_lock = raceml.DatabaseLock(data_folder)
     database_lock.acquire()
