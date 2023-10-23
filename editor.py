@@ -505,6 +505,9 @@ class Editor(wx.Frame):
 
         self.editor_state["results_table_sizer"].Add(athlete_sizer, 0, wx.EXPAND)
 
+        if athlete_id is None:
+            self.updateAthleteName(None, row_uuid)
+
         if not skip_update:
             self.updateRaceEditorLabels()
             self.editor_state["editor_panel"].FitInside()

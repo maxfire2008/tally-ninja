@@ -1,9 +1,11 @@
 import io
+import pprint
 import time
 import uuid
 import yaml
 import pathlib
 import copy
+import traceback
 
 
 class TemplateFileError(ValueError):
@@ -117,7 +119,11 @@ class DatabaseLock:
         if not isinstance(database_folder, pathlib.Path):
             database_folder = pathlib.Path(database_folder)
         self.lock_file = database_folder / "sports-scorer.lock"
-        self.program_uuid = uuid.uuid4().bytes
+        self.program_uuid = (
+            uuid.uuid4().bytes
+            + b"\n"
+            + pprint.pformat(traceback.format_stack()).encode()
+        )
 
         self.cheap_check = cheap_check
         self.last_lock_check = None
