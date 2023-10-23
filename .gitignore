@@ -3,3 +3,4 @@
 sample_data/sports-scorer.lock
 sample_data/cache/*.racecache
 built_results.html
+sample_data/athlete_photos/**
