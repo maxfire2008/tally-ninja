@@ -52,12 +52,93 @@ def hhmmss_to_milliseconds(hhmmss: str) -> int:
     return int(seconds * 1000)
 
 
+class AthleteSelector(wx.Dialog):
+    def __init__(
+        self,
+        parent,
+        athlete_list: list[tuple[dict, str]],
+        database_lock: raceml.DatabaseLock,
+        athlete_photos_folder: pathlib.Path = None,
+        size: tuple[int, int] = (400, 400),
+        team_colours: dict[str, str] = {},
+    ):
+        # a dialog box to select an athlete from a list
+        # make sure the dialog is resizable
+        super().__init__(
+            parent,
+            title="Select Athlete",
+            style=wx.RESIZE_BORDER,
+            size=size,
+        )
+
+        self.database_lock = database_lock
+        self.athlete_photos_folder = athlete_photos_folder
+        self.team_colours = team_colours
+
+        self.panel = wx.lib.scrolledpanel.ScrolledPanel(self)
+        self.panel.SetupScrolling(scroll_x=False)
+        editor_panel_resize = lambda event=None: self.panel.SetSize(
+            self.panel.GetSize()
+        )
+        editor_panel_resize()
+        self.panel.Bind(wx.EVT_SIZE, editor_panel_resize)
+
+        # create a sizer
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+
+        for athlete_data, athlete_id in athlete_list:
+            self.create_button(athlete_data, athlete_id)
+        self.create_button(athlete_data={"name": "None"}, athlete_id=None)
+
+        self.panel.SetSizer(self.sizer)
+
+    def create_button(self, athlete_data, athlete_id):
+        # create a button with the athlete's name and image
+        athlete_button = wx.Button(
+            self.panel,
+            label=athlete_data["name"],
+        )
+
+        # set the background colour to the athlete's team colour
+        athlete_button.SetBackgroundColour(
+            wx.Colour(self.team_colours.get(athlete_data.get("team"), "white"))
+        )
+
+        if athlete_id:
+            athlete_photo_bytes = simple_tally.lookup_athlete_photo(
+                athlete_id, self.athlete_photos_folder, self.database_lock
+            )
+        else:
+            athlete_photo_bytes = None
+
+        if athlete_photo_bytes is not None:
+            athlete_photo = wx.Image(io.BytesIO(athlete_photo_bytes))
+        else:
+            athlete_photo = wx.Image(100, 100)
+
+        athlete_photo.Rescale(100, 100)
+        athlete_button.SetBitmap(wx.Bitmap(athlete_photo))
+        athlete_button.Bind(
+            wx.EVT_BUTTON,
+            lambda e: self._end_modal_success(athlete_id),
+        )
+        self.sizer.Add(athlete_button, 0, wx.ALL | wx.EXPAND, 5)
+
+    def get_selected_id(self):
+        return self._selected
+
+    def _end_modal_success(self, athlete_id):
+        self._selected = athlete_id
+        self.EndModal(wx.ID_OK)
+
+
 class Editor(wx.Frame):
     def __init__(self, *args, **kw):
         # ensure the parent's __init__ is called
         super(Editor, self).__init__(*args, **kw)
 
         self.database = None
+        self.config = None
         self.database_lock = None
         self.editor_state = None
 
@@ -203,6 +284,7 @@ class Editor(wx.Frame):
             event.Veto()
             return
         self.Destroy()
+        quit()
 
     def exitDatabase(self) -> None:
         """Close the frame, terminating the application."""
@@ -216,6 +298,7 @@ class Editor(wx.Frame):
             if self.database_lock is not None:
                 self.database_lock.release()
             self.database = None
+            self.config = None
             self.database_lock = None
 
         return "success"
@@ -237,6 +320,7 @@ class Editor(wx.Frame):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             self.database = pathlib.Path(fileDialog.GetPath())
+            self.config = raceml.load(self.database / "config.yaml")
 
             # make sure to get the lock file: sports-scorer.lock
             # if it doesn't exist, create it
@@ -246,6 +330,7 @@ class Editor(wx.Frame):
                 self.database_lock.acquire()
             except ValueError as error:
                 self.database = None
+                self.config = None
                 dialog = wx.MessageDialog(
                     self.panel,
                     str(error),
@@ -336,23 +421,23 @@ class Editor(wx.Frame):
         for athlete in self.database.glob("athletes/**/*.yaml"):
             athlete_data = raceml.load(athlete)
             athlete_id = athlete.stem
-            available_athletes.append((athlete_data["name"], athlete_id))
+            available_athletes.append((athlete_data, athlete_id))
 
-        available_athletes.append(("NONE", None))
-
-        dialog = wx.SingleChoiceDialog(
+        athlete_selector = AthleteSelector(
             self,
-            "Select an athlete",
-            "Select an athlete",
-            [athlete[0] for athlete in available_athletes],
-            style=wx.OK | wx.CENTRE | wx.CHOICEDLG_STYLE,
+            available_athletes,
+            self.database_lock,
+            athlete_photos_folder=self.database / "athlete_photos",
+            size=self.GetSize(),
+            team_colours=self.config.get("team_colours", {}),
         )
 
-        status = dialog.ShowModal()
+        status = athlete_selector.ShowModal()
 
         if status == wx.ID_CANCEL:
             return current_selection
-        return available_athletes[dialog.GetSelection()][1]
+
+        return athlete_selector.get_selected_id()
 
     def updateAthleteName(
         self, event: wx.Event = None, row_uuid: uuid.UUID = None
