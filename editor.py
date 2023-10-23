@@ -123,10 +123,50 @@ class Editor(wx.Frame):
             resultListBox.Bind(wx.EVT_KEY_UP, self.openResultEditor)
             sizer.Add(resultListBox, 1, wx.EXPAND)
 
+            # add a new race button
+            newRaceButton = wx.Button(self.panel, label="New Race")
+            newRaceButton.Bind(wx.EVT_BUTTON, self.newRace)
+            sizer.Add(newRaceButton, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
             self.panel.SetSizer(sizer)
 
         # refresh the layout of the panel
         self.panel.Layout()
+
+    def newRace(self, event: wx.Event = None) -> None:
+        # popup a dialog box and ask for an event filename
+        dialog = wx.TextEntryDialog(
+            self.panel,
+            "Enter the name of the new event",
+            "New Event",
+            "",
+            style=wx.OK | wx.CANCEL | wx.CENTRE,
+        )
+
+        # get the result of the dialog box
+        if dialog.ShowModal() == wx.ID_OK:
+            event_name = dialog.GetValue()
+        else:
+            return
+
+        event_name_clean = "".join(
+            (x if x.isalnum() or x in ["_", "-"] else "_") for x in event_name
+        ).lower()
+
+        event_data = {
+            "type": "race",
+            "name": event_name,
+            "distance": "",
+            "date": datetime.date.today(),
+            "results": {},
+        }
+
+        # create the event file
+        event_filename = self.database / "results" / (event_name_clean + ".yaml")
+        raceml.dump(event_filename, event_data)
+
+        # reload the resultSelectMenu
+        self.resultSelectMenu()
 
     def makeMenuBar(self) -> None:
         """
