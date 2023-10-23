@@ -432,21 +432,21 @@ def import_results(file, athletes_directory, output, year, database_lock):
 
 
 if __name__ == "__main__":
-    database_lock = raceml.DatabaseLock("../sport-scorer-sample-data/***REMOVED***/")
+    database_lock = raceml.DatabaseLock("../sport-scorer-sample-data/ths/")
     database_lock.acquire()
 
     try:
         import_students(
             "../sport-scorer-sample-data/students.csv",
-            "../sport-scorer-sample-data/***REMOVED***/athletes/sta/",
+            "../sport-scorer-sample-data/ths/athletes/sta/",
             2023,
             database_lock,
         )
 
         import_results(
-            "../sport-scorer-sample-data/***REMOVED*** Athletics Carnival 2023-results.xlsx",
-            "../sport-scorer-sample-data/***REMOVED***/athletes/",
-            "../sport-scorer-sample-data/***REMOVED***/results/",
+            "../sport-scorer-sample-data/THS Athletics Carnival 2023-results.xlsx",
+            "../sport-scorer-sample-data/ths/athletes/",
+            "../sport-scorer-sample-data/ths/results/",
             2023,
             database_lock,
         )

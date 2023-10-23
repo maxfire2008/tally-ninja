@@ -141,8 +141,12 @@ def infdex(l: list, x) -> int:
 _athlete_cache = {}
 
 
-def lookup_athlete(
-    athlete_id, athletes_folder: pathlib.Path, database_lock: raceml.DatabaseLock
+def _lookup_athlete(
+    athlete_id,
+    athletes_folder: pathlib.Path,
+    database_lock: raceml.DatabaseLock,
+    file_type=".yaml",
+    binary=False,
 ):
     """
     Looks up an athlete's data by their ID.
@@ -159,17 +163,37 @@ def lookup_athlete(
     """
     database_lock.check()
 
-    if (athletes_folder, athlete_id) in _athlete_cache:
-        return _athlete_cache[(athletes_folder, athlete_id)]
-    athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + ".yaml"))
+    athlete_cache_key = (athletes_folder, athlete_id, file_type)
+
+    if athlete_cache_key in _athlete_cache:
+        return _athlete_cache[athlete_cache_key]
+    athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + file_type))
     if len(athlete_filenames) < 1:
         raise ValueError("Athlete not found: " + athlete_id)
     if len(athlete_filenames) > 1:
         raise ValueError("Multiple athletes found: " + athlete_id)
     athlete_filename = athlete_filenames[0]
-    athlete_data = raceml.load(athlete_filename)
-    _athlete_cache[(athletes_folder, athlete_id)] = athlete_data
+    if binary:
+        with open(athlete_filename, "rb") as file:
+            athlete_data = file.read()
+    else:
+        athlete_data = raceml.load(athlete_filename)
+    _athlete_cache[athlete_cache_key] = athlete_data
     return athlete_data
+
+
+def lookup_athlete(
+    athlete_id, athletes_folder: pathlib.Path, database_lock: raceml.DatabaseLock
+):
+    return _lookup_athlete(athlete_id, athletes_folder, database_lock, ".yaml")
+
+
+def lookup_athlete_photo(
+    athlete_id, athlete_photos_folder: pathlib.Path, database_lock: raceml.DatabaseLock
+):
+    return _lookup_athlete(
+        athlete_id, athlete_photos_folder, database_lock, ".jpeg", binary=True
+    )
 
 
 _days_events_cache = {}
@@ -1160,7 +1184,10 @@ def results_to_html(
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
 
-    data_folder = pathlib.Path(sys.argv[1])
+    if len(sys.argv) > 1:
+        data_folder = pathlib.Path(sys.argv[1])
+    else:
+        data_folder = pathlib.Path(input("PATH:"))
 
     database_lock = raceml.DatabaseLock(data_folder)
     database_lock.acquire()
