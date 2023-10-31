@@ -60,8 +60,10 @@ class AthleteSelector(wx.Dialog):
         database_lock: raceml.DatabaseLock,
         athlete_photos_folder: pathlib.Path = None,
         size: tuple[int, int] = (400, 400),
-        team_colours: dict[str, str] = {},
+        team_colours: dict[str, str] = None,
     ):
+        if team_colours is None:
+            team_colours = {}
         # a dialog box to select an athlete from a list
         # make sure the dialog is resizable
         super().__init__(
