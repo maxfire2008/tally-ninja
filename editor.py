@@ -677,7 +677,7 @@ class Editor(wx.Frame):
         name_input = wx.TextCtrl(
             self.editor_state["editor_panel"], value=race_data["name"]
         )
-        name_input.Bind(wx.EVT_TEXT, lambda e: print(e))
+        name_input.Bind(wx.EVT_TEXT, print)
         name_input.SetFocus()
         self.editor_state["name_input"] = name_input
 
@@ -687,7 +687,7 @@ class Editor(wx.Frame):
         distance_input = wx.TextCtrl(
             self.editor_state["editor_panel"], value=race_data["distance"]
         )
-        distance_input.Bind(wx.EVT_TEXT, lambda e: print(e))
+        distance_input.Bind(wx.EVT_TEXT, print)
         self.editor_state["distance_input"] = distance_input
 
         date_label = wx.StaticText(self.editor_state["editor_panel"], label="Date:")
@@ -699,7 +699,7 @@ class Editor(wx.Frame):
                 race_data["date"].year,
             ),
         )
-        date_input.Bind(wx.adv.EVT_DATE_CHANGED, lambda e: print(e))
+        date_input.Bind(wx.adv.EVT_DATE_CHANGED, print)
         self.editor_state["date_input"] = date_input
 
         # create a box sizer
