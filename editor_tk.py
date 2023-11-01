@@ -279,7 +279,9 @@ class Editor(tk.Tk):
         elif event_keycode == 13 and event.state & 1:  # Shift+Enter
             self.update_athlete_name(row_uuid)
 
-    def race_editor_add_result(self, athlete_id=None, result={}, skip_update=False):
+    def race_editor_add_result(self, athlete_id=None, result=None, skip_update=False):
+        if result is None:
+            result = {}
         athlete_sizer = ttk.Frame(self.editor_state["editor_panel"])
 
         row_uuid = uuid.uuid4()

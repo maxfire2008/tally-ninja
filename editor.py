@@ -571,8 +571,10 @@ class Editor(wx.Frame):
         self.editor_state["editor_panel"].FitInside()
 
     def raceEditorAddResult(
-        self, athlete_id: str = None, result: dict = {}, skip_update=False
+        self, athlete_id: str = None, result: dict = None, skip_update=False
     ) -> None:
+        if result is None:
+            result = {}
         athlete_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         row_uuid = uuid.uuid4()
