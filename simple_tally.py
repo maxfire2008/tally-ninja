@@ -18,9 +18,10 @@ import hashlib
 import json
 import pathlib
 import sys
-from pprint import pprint
+import pprint
 import time
 import jinja2
+import subprocess
 
 import safeeval
 
@@ -648,6 +649,8 @@ def tally_data(
 
     for results_filename in results_folder.glob("**/*.yaml"):
         results = raceml.load(results_filename)
+        if len(results.get("results").keys()) == 0:
+            print("WARNING:", results_filename, "has no results")
         # get md5 hash of results file
         results_hash = (
             "simple_tally_"
@@ -1193,7 +1196,11 @@ if __name__ == "__main__":
     database_lock.acquire()
     try:
         tb = tally_data(data_folder, database_lock)
-        pprint(tb)
+
+        with open("built_results.py", "w+", encoding="utf-8") as f:
+            f.write("tb = " + repr(tb))
+        subprocess.run([sys.executable, "-m", "black", "built_results.py"], check=False)
+
         results_to_html(
             tb,
             open_database=True,

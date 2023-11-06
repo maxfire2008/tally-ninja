@@ -2,8 +2,10 @@
 """
 import csv
 import datetime
+import math
 import pathlib
 import re
+import sys
 import yaml
 import pandas
 import simple_tally
@@ -179,6 +181,83 @@ def import_results(file, athletes_directory, output, year, database_lock):
                             raise ValueError(f"Invalid points: {points}")
                     event_json["results"][filename] = current_result_json
             elif re.match(
+                r"^#[0-9]+ [0-9]+ ?m (freestyle|backstroke|breaststroke|butterfly) Year ([7-9]|10) (fe)?male$",
+                event_name,
+            ):
+                event_name = event_name.replace(" m ", "m ")
+                event_name_split = event_name.split(" ")
+                event_number = event_name_split[0][1:]
+                event_distance = event_name_split[1][:-1]
+                event_type = event_name_split[2]
+                event_year = event_name_split[4]
+                event_gender = event_name_split[5]
+                date_start = datetime.datetime(2023, 9, 2, 9, 0, 0)
+                date_start += datetime.timedelta(minutes=(int(event_number) - 1) * 10)
+                event_json = {
+                    "type": "race",
+                    "name": f"{event_distance}m {event_type} Year {event_year} {event_gender}",
+                    "distance": event_distance + "m",
+                    "gender": event_gender,
+                    "ystart": year - int(event_year),
+                    "date": date_start,
+                    "results": {},
+                }
+
+                # iterate through rows B7:F(INFINITY)
+                for row in range(5, sheet.shape[0]):
+                    # C: Name, E: Result
+                    # John Doe, 14s 600ms
+                    name = sheet.iloc[row, 2]
+                    name_split = name.split(" ")
+                    result = sheet.iloc[row, 4]
+                    points = sheet.iloc[row, 5]
+                    filename = (
+                        "-".join(name_split[0:2]).lower()
+                        + "-"
+                        + str(event_json["ystart"])
+                        # + "*"
+                    )
+
+                    # ensure that the athlete exists
+                    simple_tally.lookup_athlete(
+                        filename, athletes_directory, database_lock
+                    )
+
+                    result_in_milliseconds = None
+                    if isinstance(result, float) and math.isnan(result):
+                        result = ""
+                    if re.match(r"^[0-9]+m [0-9]+s [0-9]+ms$", result):
+                        result_split = result.split(" ")
+                        result_in_milliseconds = (
+                            int(result_split[0][:-1]) * 60 * 1000
+                            + int(result_split[1][:-1]) * 1000
+                            + int(result_split[2][:-2])
+                        )
+                    elif re.match(r"^[0-9]+s [0-9]+ms$", result):
+                        result_split = result.split(" ")
+                        result_in_milliseconds = int(result_split[0][:-1]) * 1000 + int(
+                            result_split[1][:-2]
+                        )
+                    else:
+                        print(
+                            f"Invalid result: {result!r} for {name!r} in {event_name!r} ({event_number!r})"
+                        )
+
+                    current_result_json = {
+                        "finish_time": result_in_milliseconds,
+                        "_debug_points": points,
+                    }
+
+                    try:
+                        int(points)
+                    except ValueError:
+                        if points in ["DQ", "DNF"]:
+                            current_result_json[points] = True
+                        else:
+                            raise ValueError(f"Invalid points: {points}")
+
+                    event_json["results"][filename] = current_result_json
+            elif re.match(
                 r"^#[0-9]+ (Long jump|Javelin throw|Triple jump|Shot put|Discus throw) Year ([7-9]|10) (fe)?male$",
                 event_name,
             ):
@@ -347,9 +426,58 @@ def import_results(file, athletes_directory, output, year, database_lock):
                 date_start += datetime.timedelta(minutes=(int(event_number) - 1) * 10)
                 event_json = {
                     "type": "race",
-                    "scoring_type": "most_points",
+                    "scoring_type": "relay",
                     "competitor_type": "team",
                     "name": f"4x100m Track Relay Year {event_year} {event_gender}",
+                    "distance": event_distance + "m",
+                    "gender": event_gender,
+                    "ystart": year - int(event_year),
+                    "date": date_start,
+                    "results": {},
+                }
+
+                # iterate through rows B7:F(INFINITY)
+                for row in range(5, sheet.shape[0]):
+                    # C: Name, F: Points
+                    # Crayfish, 40
+
+                    name = sheet.iloc[row, 2]
+                    points = sheet.iloc[row, 5]
+
+                    try:
+                        points = int(points)
+                    except ValueError:
+                        points = 0
+
+                    current_result_json = {
+                        "points": points,
+                        "_debug_points": points,
+                    }
+                    try:
+                        int(points)
+                    except ValueError:
+                        if points in ["DQ", "DNF"]:
+                            current_result_json[points] = True
+                        else:
+                            raise ValueError(f"Invalid points: {points}")
+                    event_json["results"][name] = current_result_json
+
+            elif re.match(
+                r"^#[0-9]+ 4x25 m freestyle relay Year ([7-9]|10) (fe)?male$",
+                event_name,
+            ):
+                event_name_split = event_name.split(" ")
+                event_number = event_name_split[0][1:]
+                event_year = event_name_split[6]
+                event_gender = event_name_split[7]
+
+                date_start = datetime.datetime(2023, 9, 2, 9, 0, 0)
+                date_start += datetime.timedelta(minutes=(int(event_number) - 1) * 10)
+                event_json = {
+                    "type": "race",
+                    "scoring_type": "relay",
+                    "competitor_type": "team",
+                    "name": f"4x25m Freestyle Relay Year {event_year} {event_gender}",
                     "distance": event_distance + "m",
                     "gender": event_gender,
                     "ystart": year - int(event_year),
@@ -432,21 +560,25 @@ def import_results(file, athletes_directory, output, year, database_lock):
 
 
 if __name__ == "__main__":
-    database_lock = raceml.DatabaseLock("../sport-scorer-sample-data/ths/")
+    STUDENTS_CSV = pathlib.Path(sys.argv[1])
+    RESULTS_XLSX = pathlib.Path(sys.argv[2])
+    DATABASE_FOLDER = pathlib.Path(sys.argv[3])
+
+    database_lock = raceml.DatabaseLock(DATABASE_FOLDER)
     database_lock.acquire()
 
     try:
         import_students(
-            "../sport-scorer-sample-data/students.csv",
-            "../sport-scorer-sample-data/ths/athletes/sta/",
+            STUDENTS_CSV,
+            DATABASE_FOLDER / "athletes/",
             2023,
             database_lock,
         )
 
         import_results(
-            "../sport-scorer-sample-data/THS Athletics Carnival 2023-results.xlsx",
-            "../sport-scorer-sample-data/ths/athletes/",
-            "../sport-scorer-sample-data/ths/results/",
+            RESULTS_XLSX,
+            DATABASE_FOLDER / "athletes/",
+            DATABASE_FOLDER / "results/",
             2023,
             database_lock,
         )
