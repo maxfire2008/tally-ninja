@@ -206,7 +206,7 @@ def _lookup_athlete(
         return _athlete_cache[athlete_cache_key]
     athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + file_type))
     if len(athlete_filenames) < 1:
-        raise ValueError("Athlete not found: " + athlete_id)
+        raise FileNotFoundError("Athlete not found: " + athlete_id)
     if len(athlete_filenames) > 1:
         raise ValueError("Multiple athletes found: " + athlete_id)
     athlete_filename = athlete_filenames[0]
