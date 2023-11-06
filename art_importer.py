@@ -4,10 +4,6 @@ import pathlib
 from pprint import pprint
 import re
 import yaml
-import pandas
-import simple_tally
-import shutil
-import time
 import raceml
 
 
