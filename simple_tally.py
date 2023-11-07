@@ -73,8 +73,7 @@ def number(x) -> int | float:
     if isinstance(x, float):
         if x.is_integer():
             return int(x)
-        else:
-            return x
+        return x
     elif isinstance(x, int):
         return x
     else:
@@ -148,8 +147,7 @@ def get_days_events(
 
     if date in _days_events_cache:
         return _days_events_cache[date]
-    else:
-        _days_events_cache[date] = []
+    _days_events_cache[date] = []
 
     for results_filename in results_folder.glob("**/*.yaml"):
         results = raceml.load(results_filename)
