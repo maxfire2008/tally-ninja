@@ -476,7 +476,7 @@ def calculate_points(
                                 ):
                                     place += 1
                                     break
-                                elif infdex(v["heights"][key], True) > infdex(
+                                if infdex(v["heights"][key], True) > infdex(
                                     athlete_result["heights"][key], True
                                 ):
                                     break

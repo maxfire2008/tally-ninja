@@ -73,22 +73,21 @@ def import_students(file, output, year, database_lock):
                         existing_student = yaml.safe_load(f)
                         if existing_student == student_raceml:
                             break
-                        else:
-                            print(
-                                f"Student {student['firstname']} {student['lastname']} already exists but is different"
+                        print(
+                            f"Student {student['firstname']} {student['lastname']} already exists but is different"
+                        )
+                        # add a number to the end of the filename
+                        stem = student_file.stem
+                        # if the filename already has a number, increment it
+                        if re.match(r".*-([0-9]+)-([0-9]+)$", stem):
+                            stem = re.sub(
+                                r"([0-9]+)$",
+                                lambda x: str(int(x.group(1)) + 1),
+                                stem,
                             )
-                            # add a number to the end of the filename
-                            stem = student_file.stem
-                            # if the filename already has a number, increment it
-                            if re.match(r".*-([0-9]+)-([0-9]+)$", stem):
-                                stem = re.sub(
-                                    r"([0-9]+)$",
-                                    lambda x: str(int(x.group(1)) + 1),
-                                    stem,
-                                )
-                            else:
-                                stem += "-1"
-                            student_file = student_file.with_stem(stem)
+                        else:
+                            stem += "-1"
+                        student_file = student_file.with_stem(stem)
                 else:
                     with open(student_file, "w", encoding="utf-8") as f:
                         yaml.dump(student_raceml, f)
@@ -517,27 +516,26 @@ def import_results(file, athletes_directory, output, year, database_lock):
                             existing_event = yaml.safe_load(f)
                             if existing_event == event_json:
                                 break
-                            else:
-                                if event_json.get("type") == "high_jump":
-                                    print(
-                                        f"Event {event_json['name']} already exists but is different, not duplicating because high jump is not supported"
-                                    )
-                                    break
+                            if event_json.get("type") == "high_jump":
                                 print(
-                                    f"Event {event_json['name']} already exists but is different"
+                                    f"Event {event_json['name']} already exists but is different, not duplicating because high jump is not supported"
                                 )
-                                # add a number to the end of the filename
-                                stem = event_file.stem
-                                # if the filename already has a number, increment it
-                                if re.match(r".*-([0-9]+)$", stem):
-                                    stem = re.sub(
-                                        r"([0-9]+)$",
-                                        lambda x: str(int(x.group(1)) + 1),
-                                        stem,
-                                    )
-                                else:
-                                    stem += "-1"
-                                event_file = event_file.with_stem(stem)
+                                break
+                            print(
+                                f"Event {event_json['name']} already exists but is different"
+                            )
+                            # add a number to the end of the filename
+                            stem = event_file.stem
+                            # if the filename already has a number, increment it
+                            if re.match(r".*-([0-9]+)$", stem):
+                                stem = re.sub(
+                                    r"([0-9]+)$",
+                                    lambda x: str(int(x.group(1)) + 1),
+                                    stem,
+                                )
+                            else:
+                                stem += "-1"
+                            event_file = event_file.with_stem(stem)
                     else:
                         with open(event_file, "w", encoding="utf-8") as f:
                             yaml.dump(event_json, f, sort_keys=False)
