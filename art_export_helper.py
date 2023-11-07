@@ -30,14 +30,7 @@ def art_watch(input, export_folder):
     # create the input folder if it doesn't exist
     watch_folder.mkdir(parents=True, exist_ok=True)
 
-    # this file content
-    code_content = open(__file__, "rb").read()
-
     while True:
-        if open(__file__, "rb").read() != code_content:
-            print("Code changed, exiting")
-            return
-
         for file in watch_folder.iterdir():
             if (
                 file.is_file()
