@@ -76,20 +76,19 @@ def import_agee_race_timing(input: pathlib.Path, data_folder: pathlib.Path):
 
         if sanitized_name in race_results.values():
             raise ValueError(f"Duplicate athlete name: {sanitized_name}")
-        else:
-            if not row["Finishing Time (in seconds)"]:
-                if row["Finishing Time"] in ["DNS", "DNF", "DQ"]:
-                    athlete_result[row["Finishing Time"]] = True
-                elif row["Laps Remaining"] != "0":
-                    print(f"Missing finish time for {sanitized_name}, {row}")
-                    athlete_result["DNF"] = True
-                else:
-                    raise ValueError(f"Missing finish time for {sanitized_name}, {row}")
+        if not row["Finishing Time (in seconds)"]:
+            if row["Finishing Time"] in ["DNS", "DNF", "DQ"]:
+                athlete_result[row["Finishing Time"]] = True
             elif row["Laps Remaining"] != "0":
                 print(f"Missing finish time for {sanitized_name}, {row}")
                 athlete_result["DNF"] = True
+            else:
+                raise ValueError(f"Missing finish time for {sanitized_name}, {row}")
+        elif row["Laps Remaining"] != "0":
+            print(f"Missing finish time for {sanitized_name}, {row}")
+            athlete_result["DNF"] = True
 
-            race_results[sanitized_name] = athlete_result
+        race_results[sanitized_name] = athlete_result
 
         for k, v in athlete_data.items():
             if not v:
