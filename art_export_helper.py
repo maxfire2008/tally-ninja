@@ -56,11 +56,10 @@ def art_watch(input, export_folder):
                                 if proposed_filename.read_bytes() == file.read_bytes():
                                     print(f"File {file} already processed")
                                     break
+                                if n:
+                                    n += 1
                                 else:
-                                    if n:
-                                        n += 1
-                                    else:
-                                        n = 1
+                                    n = 1
                             else:
                                 break
 
