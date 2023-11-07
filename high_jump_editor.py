@@ -363,10 +363,12 @@ def main():
         if (
             CURRENT_FILE
             and CURRENT_FILE.get("unsaved_changes")
-            and not tkinter.messagebox.askyesno(
-            "Unsaved Changes",
-            "You have unsaved changes. Are you sure you want to return to the main menu?",
-        )
+            and (
+                not tkinter.messagebox.askyesno(
+                    "Unsaved Changes",
+                    "You have unsaved changes. Are you sure you want to return to the main menu?",
+                )
+            )
         ):
             return
         for widget in root.winfo_children():
