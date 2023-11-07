@@ -442,11 +442,7 @@ def calculate_points(
 
             my_best = None
             for height, attempts in athlete_result["heights"].items():
-                if (
-                    True in attempts
-                    and my_best is None
-                    or height > my_best
-                ):
+                if True in attempts and (my_best is None or height > my_best):
                     my_best = height
 
             if my_best is None:
@@ -459,10 +455,8 @@ def calculate_points(
                     ):
                         their_best = None
                         for height, attempts in v["heights"].items():
-                            if (
-                                True in attempts
-                                and their_best is None
-                                or height > their_best
+                            if True in attempts and (
+                                their_best is None or height > their_best
                             ):
                                 their_best = height
 
