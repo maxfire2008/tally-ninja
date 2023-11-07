@@ -608,11 +608,10 @@ def tally_data(
             ):
                 tally_board = raceml.deep_add(tally_board, cached_content["payload"])
                 continue
-            else:
-                # delete cache file
-                if cache_file.suffix == ".racecache":
-                    cache_file.unlink()
-                    print("Deleted out of date cache file: " + str(cache_file))
+            # delete cache file
+            if cache_file.suffix == ".racecache":
+                cache_file.unlink()
+                print("Deleted out of date cache file: " + str(cache_file))
 
         results_filename_relative_to_results_folder = str(
             results_filename.relative_to(results_folder)
