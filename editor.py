@@ -106,7 +106,7 @@ class AthleteSelector(wx.Dialog):
 
         if athlete_id:
             try:
-                athlete_photo_bytes = simple_tally.lookup_athlete_photo(
+                athlete_photo_bytes = raceml.lookup_athlete_photo(
                     athlete_id, self.athlete_photos_folder, self.database_lock
                 )
             except FileNotFoundError:
