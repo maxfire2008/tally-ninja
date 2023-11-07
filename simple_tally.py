@@ -1007,10 +1007,8 @@ def results_to_html(
                 elif league_type == "team":
                     if event in points["per_event"]:
                         if any(
-                            [
-                                isinstance(x.get("rank"), int)
+                            isinstance(x.get("rank"), int)
                                 for x in points["per_event"].get(event, [])
-                            ]
                         ):
                             mine_unique_place = True
                             min_rank = min(
