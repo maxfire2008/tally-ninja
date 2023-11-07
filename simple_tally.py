@@ -1113,7 +1113,8 @@ def results_to_html(
 
         leagues[league] = current_league
 
-    template = jinja2.Template(open("template.html", "r", encoding="utf-8").read())
+    with open("template.html", "r", encoding="utf-8") as tf:
+        template = jinja2.Template(tf.read())
 
     # write html file
     with open("built_results.html", "w", encoding="utf-8") as f:
