@@ -360,13 +360,15 @@ def main():
 
     def main_menu_event(event=None):
         global CURRENT_FILE
-        if CURRENT_FILE:
-            if CURRENT_FILE.get("unsaved_changes"):
-                if not tkinter.messagebox.askyesno(
-                    "Unsaved Changes",
-                    "You have unsaved changes. Are you sure you want to return to the main menu?",
-                ):
-                    return
+        if (
+            CURRENT_FILE
+            and CURRENT_FILE.get("unsaved_changes")
+            and not tkinter.messagebox.askyesno(
+            "Unsaved Changes",
+            "You have unsaved changes. Are you sure you want to return to the main menu?",
+        )
+        ):
+            return
         for widget in root.winfo_children():
             if not isinstance(widget, tkinter.Menu):
                 widget.destroy()
