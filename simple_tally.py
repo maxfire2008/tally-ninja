@@ -8,18 +8,14 @@ Classes:
 
 Functions:
     calculate_age: Calculate age in years.
-    lookup_athlete: Lookup athlete data by ID.
     get_eligible_leagues: Get eligible leagues for an athlete.
     tally_data: Tally data for sports events.
 
 """
 import datetime
 import hashlib
-import json
 import pathlib
 import sys
-import pprint
-import time
 import jinja2
 import subprocess
 
@@ -137,64 +133,6 @@ def infdex(l: list, x) -> int:
         return l.index(x)
     except ValueError:
         return float("inf")
-
-
-_athlete_cache = {}
-
-
-def _lookup_athlete(
-    athlete_id,
-    athletes_folder: pathlib.Path,
-    database_lock: raceml.DatabaseLock,
-    file_type=".yaml",
-    binary=False,
-):
-    """
-    Looks up an athlete's data by their ID.
-
-    Args:
-        athlete_id (str): The ID of the athlete to look up.
-        athletes_folder (pathlib.Path): The folder containing the YAML files for all athletes.
-
-    Returns:
-        dict: A dictionary containing the athlete's data.
-
-    Raises:
-        ValueError: If the athlete is not found or multiple athletes are found with the same ID.
-    """
-    database_lock.check()
-
-    athlete_cache_key = (athletes_folder, athlete_id, file_type)
-
-    if athlete_cache_key in _athlete_cache:
-        return _athlete_cache[athlete_cache_key]
-    athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + file_type))
-    if len(athlete_filenames) < 1:
-        raise ValueError("Athlete not found: " + athlete_id)
-    if len(athlete_filenames) > 1:
-        raise ValueError("Multiple athletes found: " + athlete_id)
-    athlete_filename = athlete_filenames[0]
-    if binary:
-        with open(athlete_filename, "rb") as file:
-            athlete_data = file.read()
-    else:
-        athlete_data = raceml.load(athlete_filename)
-    _athlete_cache[athlete_cache_key] = athlete_data
-    return athlete_data
-
-
-def lookup_athlete(
-    athlete_id, athletes_folder: pathlib.Path, database_lock: raceml.DatabaseLock
-):
-    return _lookup_athlete(athlete_id, athletes_folder, database_lock, ".yaml")
-
-
-def lookup_athlete_photo(
-    athlete_id, athlete_photos_folder: pathlib.Path, database_lock: raceml.DatabaseLock
-):
-    return _lookup_athlete(
-        athlete_id, athlete_photos_folder, database_lock, ".jpeg", binary=True
-    )
 
 
 _days_events_cache = {}
@@ -692,7 +630,7 @@ def tally_data(
         if competitor_type == "individual":
             for athlete_id, athlete_result in results["results"].items():
                 try:
-                    athlete = lookup_athlete(
+                    athlete = raceml.lookup_athlete(
                         athlete_id, data_folder / "athletes", database_lock
                     )
                 except raceml.TemplateFileError:
@@ -745,7 +683,7 @@ def tally_data(
                         "results"
                     ].items():
                         try:
-                            potential_competitor = lookup_athlete(
+                            potential_competitor = raceml.lookup_athlete(
                                 potential_competitor_id,
                                 data_folder / "athletes",
                                 database_lock,
@@ -1143,7 +1081,7 @@ def results_to_html(
                         }
 
             if open_database and league_type == "individual":
-                athlete_name = lookup_athlete(
+                athlete_name = raceml.lookup_athlete(
                     athlete_id, data_folder / "athletes", database_lock
                 )["name"]
             else:

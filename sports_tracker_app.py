@@ -8,7 +8,6 @@ import re
 import sys
 import yaml
 import pandas
-import simple_tally
 import raceml
 
 
@@ -148,9 +147,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                     )
 
                     # ensure that the athlete exists
-                    simple_tally.lookup_athlete(
-                        filename, athletes_directory, database_lock
-                    )
+                    raceml.lookup_athlete(filename, athletes_directory, database_lock)
 
                     result_in_milliseconds = None
                     if re.match(r"^[0-9]+m [0-9]+s [0-9]+ms$", result):
@@ -219,9 +216,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                     )
 
                     # ensure that the athlete exists
-                    simple_tally.lookup_athlete(
-                        filename, athletes_directory, database_lock
-                    )
+                    raceml.lookup_athlete(filename, athletes_directory, database_lock)
 
                     result_in_milliseconds = None
                     if isinstance(result, float) and math.isnan(result):
@@ -294,9 +289,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                         + str(event_json["ystart"])
                         # + "*"
                     )
-                    simple_tally.lookup_athlete(
-                        filename, athletes_directory, database_lock
-                    )
+                    raceml.lookup_athlete(filename, athletes_directory, database_lock)
 
                     # 1 4m 60cm2 metersm centimeterscm3 metersm centimeterscm
                     # 1: 4600
@@ -376,7 +369,7 @@ def import_results(file, athletes_directory, output, year, database_lock):
                         + str(event_json["ystart"])
                         # + "*"
                     )
-                    athlete = simple_tally.lookup_athlete(
+                    athlete = raceml.lookup_athlete(
                         filename, athletes_directory, database_lock
                     )
 

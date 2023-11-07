@@ -173,3 +173,61 @@ class DatabaseLock:
                 self.lock_file.unlink()
                 return True
         return False
+
+
+_athlete_cache = {}
+
+
+def _lookup_athlete(
+    athlete_id,
+    athletes_folder: pathlib.Path,
+    database_lock: DatabaseLock,
+    file_type=".yaml",
+    binary=False,
+):
+    """
+    Looks up an athlete's data by their ID.
+
+    Args:
+        athlete_id (str): The ID of the athlete to look up.
+        athletes_folder (pathlib.Path): The folder containing the YAML files for all athletes.
+
+    Returns:
+        dict: A dictionary containing the athlete's data.
+
+    Raises:
+        ValueError: If the athlete is not found or multiple athletes are found with the same ID.
+    """
+    database_lock.check()
+
+    athlete_cache_key = (athletes_folder, athlete_id, file_type)
+
+    if athlete_cache_key in _athlete_cache:
+        return _athlete_cache[athlete_cache_key]
+    athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + file_type))
+    if len(athlete_filenames) < 1:
+        raise FileNotFoundError("Athlete not found: " + athlete_id)
+    if len(athlete_filenames) > 1:
+        raise ValueError("Multiple athletes found: " + athlete_id)
+    athlete_filename = athlete_filenames[0]
+    if binary:
+        with open(athlete_filename, "rb") as file:
+            athlete_data = file.read()
+    else:
+        athlete_data = load(athlete_filename)
+    _athlete_cache[athlete_cache_key] = athlete_data
+    return athlete_data
+
+
+def lookup_athlete(
+    athlete_id, athletes_folder: pathlib.Path, database_lock: DatabaseLock
+):
+    return _lookup_athlete(athlete_id, athletes_folder, database_lock, ".yaml")
+
+
+def lookup_athlete_photo(
+    athlete_id, athlete_photos_folder: pathlib.Path, database_lock: DatabaseLock
+):
+    return _lookup_athlete(
+        athlete_id, athlete_photos_folder, database_lock, ".jpeg", binary=True
+    )

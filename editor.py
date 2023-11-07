@@ -3,7 +3,6 @@ import io
 import pathlib
 import uuid
 import decimal
-import warnings
 
 import wx
 import wx.adv
@@ -12,7 +11,6 @@ import ruamel.yaml
 import ruamel.yaml.error
 
 import raceml
-import simple_tally
 
 
 def milliseconds_to_hhmmss(milliseconds: int) -> str:
@@ -107,9 +105,12 @@ class AthleteSelector(wx.Dialog):
         )
 
         if athlete_id:
-            athlete_photo_bytes = simple_tally.lookup_athlete_photo(
-                athlete_id, self.athlete_photos_folder, self.database_lock
-            )
+            try:
+                athlete_photo_bytes = simple_tally.lookup_athlete_photo(
+                    athlete_id, self.athlete_photos_folder, self.database_lock
+                )
+            except FileNotFoundError:
+                athlete_photo_bytes = None
         else:
             athlete_photo_bytes = None
 
@@ -513,14 +514,14 @@ class Editor(wx.Frame):
             elif athlete_ids[row_athlete_id] > 1:
                 row_content["athlete_name_button"].SetLabel(
                     "!"
-                    + simple_tally.lookup_athlete(
+                    + raceml.lookup_athlete(
                         row_athlete_id, self.database / "athletes", self.database_lock
                     )["name"]
                 )
                 row_content["athlete_name_button"].SetBackgroundColour(wx.RED)
             else:
                 row_content["athlete_name_button"].SetLabel(
-                    simple_tally.lookup_athlete(
+                    raceml.lookup_athlete(
                         row_athlete_id, self.database / "athletes", self.database_lock
                     )["name"]
                 )
