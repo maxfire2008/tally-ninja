@@ -62,7 +62,7 @@ _file_cache = {}
 def load(
     filepath: pathlib.Path or io.TextIOWrapper,
     allow_template_only=False,
-    cache=True,
+    cache=False,
     file_stream=None,
 ):
     arg_key = (filepath, allow_template_only)

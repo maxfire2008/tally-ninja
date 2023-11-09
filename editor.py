@@ -615,6 +615,14 @@ class Editor(wx.Frame):
 
         athlete_sizer.Add(time_input, 1, wx.EXPAND)
 
+        dnf_checkbox = wx.CheckBox(self.editor_state["editor_panel"], label="DNF")
+        dnf_checkbox.Value = result.get("DNF", False)
+        athlete_sizer.Add(dnf_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        dns_checkbox = wx.CheckBox(self.editor_state["editor_panel"], label="DNS")
+        dns_checkbox.Value = result.get("DNS", False)
+        athlete_sizer.Add(dns_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
+
         delete_button = wx.Button(self.editor_state["editor_panel"], label="🗑️")
         delete_button.Bind(
             wx.EVT_BUTTON,
@@ -626,6 +634,8 @@ class Editor(wx.Frame):
             "athlete_id": athlete_id,
             "athlete_name_button": athlete_name,
             "time_input": time_input,
+            "dns_checkbox": dns_checkbox,
+            "dnf_checkbox": dnf_checkbox,
             "delete_button": delete_button,
             "athlete_sizer": athlete_sizer,
             "finish_time_uneditable": finish_time_uneditable,
@@ -698,7 +708,7 @@ class Editor(wx.Frame):
             self.editor_state["editor_panel"],
             dt=wx.DateTime(
                 race_data["date"].day,
-                race_data["date"].month,
+                race_data["date"].month - 1,
                 race_data["date"].year,
             ),
         )
@@ -823,6 +833,20 @@ class Editor(wx.Frame):
                         return
                 elif "finish_time" in doc["results"][row_content["athlete_id"]]:
                     del doc["results"][row_content["athlete_id"]]["finish_time"]
+
+            dnf_checkbox_value = row_content["dnf_checkbox"].Value
+
+            if dnf_checkbox_value:
+                doc["results"][row_content["athlete_id"]]["DNF"] = True
+            elif "DNF" in doc["results"][row_content["athlete_id"]]:
+                del doc["results"][row_content["athlete_id"]]["DNF"]
+
+            dns_checkbox_value = row_content["dns_checkbox"].Value
+
+            if dns_checkbox_value:
+                doc["results"][row_content["athlete_id"]]["DNS"] = True
+            elif "DNS" in doc["results"][row_content["athlete_id"]]:
+                del doc["results"][row_content["athlete_id"]]["DNS"]
 
         for athlete_id in list(doc["results"].keys()):
             if athlete_id not in athlete_ids:
