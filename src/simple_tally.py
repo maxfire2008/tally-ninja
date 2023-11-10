@@ -150,7 +150,7 @@ def get_days_events(
     _days_events_cache[date] = []
 
     for results_filename in results_folder.glob("**/*.yaml"):
-        results = raceml.load(results_filename)
+        results = raceml.load(results_filename, cache=True)
         results_date = results["date"]
 
         if isinstance(results_date, datetime.datetime):
@@ -198,7 +198,7 @@ def get_eligible_leagues(
 
     for league_filename in leagues_folder.glob("**/*.yaml"):
         try:
-            league = raceml.load(league_filename)
+            league = raceml.load(league_filename, cache=True)
         except raceml.TemplateFileError:
             continue
 
@@ -270,7 +270,7 @@ def get_races_for_athlete(
 
     for results_filename in data_folder.glob("results/**/*.yaml"):
         # open the results file
-        results = raceml.load(results_filename)
+        results = raceml.load(results_filename, cache=True)
 
         # get the athlete's result
         athlete_result = results["results"].get(athlete_id, None)
@@ -584,7 +584,7 @@ def tally_data(
     code_folder_hash = hashlib.sha256(repr(code_hash_items).encode()).hexdigest()
 
     for results_filename in results_folder.glob("**/*.yaml"):
-        results = raceml.load(results_filename)
+        results = raceml.load(results_filename, cache=True)
         if len(results.get("results").keys()) == 0:
             print("WARNING:", results_filename, "has no results")
         # get md5 hash of results file
@@ -598,7 +598,7 @@ def tally_data(
 
         cache_file = cache_folder / results_hash
         if cache_file.exists():
-            cached_content = raceml.load(cache_file)
+            cached_content = raceml.load(cache_file, cache=True)
             if (
                 cached_content.get("athletes_folder_hash") == athletes_folder_hash
                 and cached_content.get("leagues_folder_hash") == leagues_folder_hash
@@ -914,7 +914,9 @@ def results_to_html(
     ):
         league_total_points[league] = 0
         if open_database:
-            league_type = raceml.load(data_folder / "leagues" / league)["league_type"]
+            league_type = raceml.load(data_folder / "leagues" / league, cache=True)[
+                "league_type"
+            ]
         else:
             league_type = "individual"
 
@@ -929,8 +931,12 @@ def results_to_html(
         for athlete_results in league_results_filtered.values():
             for event in athlete_results["per_event"].keys():
                 if open_database:
-                    event_name = raceml.load(results_folder / "results" / event)["name"]
-                    event_date = raceml.load(results_folder / "results" / event)["date"]
+                    event_name = raceml.load(
+                        results_folder / "results" / event, cache=True
+                    )["name"]
+                    event_date = raceml.load(
+                        results_folder / "results" / event, cache=True
+                    )["date"]
                 else:
                     event_name = event
                     event_date = None
@@ -940,7 +946,9 @@ def results_to_html(
                 }
 
         if open_database:
-            league_name = raceml.load(data_folder / "leagues" / league)["name"]
+            league_name = raceml.load(data_folder / "leagues" / league, cache=True)[
+                "name"
+            ]
         else:
             league_name = league
 
@@ -1005,7 +1013,7 @@ def results_to_html(
                     if event in points["per_event"]:
                         if any(
                             isinstance(x.get("rank"), int)
-                                for x in points["per_event"].get(event, [])
+                            for x in points["per_event"].get(event, [])
                         ):
                             mine_unique_place = True
                             min_rank = min(
