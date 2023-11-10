@@ -3,7 +3,10 @@ import subprocess
 import shutil
 import os
 import uuid
+import zipfile
+import io
 import bs4
+import requests
 
 
 def new_launcher(python_file, output_exe, python_path="pyw"):
@@ -38,6 +41,25 @@ int main()
     gcc.wait()
 
 
+def download_embedded_python(output_dir):
+    if not isinstance(output_dir, pathlib.Path):
+        output_dir = pathlib.Path(output_dir)
+
+    # delete output_dir if it exists
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+
+    # download the python embedded zip
+    response = requests.get(
+        "https://www.python.org/ftp/python/3.11.6/python-3.11.6-embed-amd64.zip",
+        stream=True,
+    )
+
+    # extract the zip
+    with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+        zip_file.extractall(output_dir)
+
+
 def main():
     os.chdir(pathlib.Path(__file__).parent.absolute())
 
@@ -57,6 +79,7 @@ def main():
     )
 
     shutil.copy("LICENSE.md", "build/License.rtf")
+    shutil.copy("requirements.txt", "build/requirements.txt")
 
     # open sportscorer.wxs and read the XML
     with open("sportscorer.wxs", "r") as f:
@@ -71,6 +94,34 @@ def main():
 
     # set the version number
     soup.find("Wix").find("Package")["UpgradeCode"] = str(uuid.uuid4())
+
+    download_embedded_python("staging_pythonembedded/python_embedded")
+
+    # install packages from requirements.txt to staging_pythonembedded/python_embedded/Lib/site-packages
+    subprocess.run(
+        [
+            "py",
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            "requirements.txt",
+            "--target",
+            "staging_pythonembedded/python_embedded/Lib/site-packages",
+        ],
+        check=True,
+    )
+
+    # recursively list all files in staging_pythonembedded/python_embedded
+
+    embedded_python_component = soup.find(
+        "Component", {"Id": "SportScorerEmbeddedPythonFiles"}
+    )
+
+    for root, dirs, files in os.walk("staging_pythonembedded/python_embedded"):
+        for file in files:
+            file_path = pathlib.Path(root) / file
+            file_id = str(uuid.uuid4())
 
     # write the XML back to sportscorer.wxs
     with open("sportscorer.wxs", "w") as f:
