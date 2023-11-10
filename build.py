@@ -37,18 +37,24 @@ int main()
 
 
 def main():
-    # change cwd to __file__/../
-    os.chdir(pathlib.Path(__file__).parent.parent.absolute())
-
-    # create the staging/main directory
-    pathlib.Path("staging/main").mkdir(parents=True, exist_ok=True)
-
-    shutil.copy("src/raceml.py", "staging/main/raceml.py")
-
-    shutil.copy("src/editor.py", "staging/main/editor.py")
-    new_launcher("src/editor.py", "staging/main/editor.exe")
-
     os.chdir(pathlib.Path(__file__).parent.absolute())
+
+    # create the staging_main directory
+    pathlib.Path("build/staging_main").mkdir(parents=True, exist_ok=True)
+
+    shutil.copy("src/raceml.py", "build/staging_main/raceml.py")
+
+    shutil.copy("src/editor.py", "build/staging_main/editor.py")
+    new_launcher("src/editor.py", "build/staging_main/editor.exe")
+
+    shutil.copy("LICENSE.md", "build/LICENSE.rtf")
+
+    os.chdir((pathlib.Path(__file__).parent / "build").absolute())
+
+    subprocess.run(
+        ["wix", "extension", "add", "WixToolset.UI.wixext"],
+        check=True,
+    )
 
     p = createmsi.PackageGenerator(
         {
@@ -68,7 +74,7 @@ def main():
                     "title": "Sport Scorer",
                     "description": "Sport Scorer Suite",
                     "absent": "disallow",
-                    "staged_dir": "staging/main",
+                    "staged_dir": "staging_main",
                 }
             ],
         }
