@@ -3,17 +3,19 @@ import subprocess
 import shutil
 import os
 import uuid
-import createmsi
+import bs4
 
 
-def new_launcher(python_file, output_exe):
+def new_launcher(python_file, output_exe, python_path="pyw"):
     code = (
         """#include <stdio.h>
 #include <stdlib.h>
 
 int main()
 {
-    char *args[] = {"pyw", \""""
+    char *args[] = {\""""
+        + python_path
+        + """\", \""""
         + python_file
         + """\", NULL};
     execvp(args[0], args);
@@ -39,15 +41,26 @@ int main()
 def main():
     os.chdir(pathlib.Path(__file__).parent.absolute())
 
-    # create the staging_main directory
     pathlib.Path("build/staging_main").mkdir(parents=True, exist_ok=True)
 
     shutil.copy("src/raceml.py", "build/staging_main/raceml.py")
 
     shutil.copy("src/editor.py", "build/staging_main/editor.py")
-    new_launcher("src/editor.py", "build/staging_main/editor.exe")
+    new_launcher("src/editor.py", "build/staging_main/editor.exe", python_path="pyw")
 
-    shutil.copy("LICENSE.md", "build/LICENSE.rtf")
+    pathlib.Path("build/staging_pythonembedded").mkdir(parents=True, exist_ok=True)
+
+    new_launcher(
+        "src/editor.py",
+        "build/staging_pythonembedded/editor.exe",
+        python_path="./pythonembedded/pythonw.exe",
+    )
+
+    shutil.copy("LICENSE.md", "build/License.rtf")
+
+    # open sportscorer.wxs and read the XML
+    with open("sportscorer.wxs", "r") as f:
+        soup = bs4.BeautifulSoup(f.read(), "xml")
 
     os.chdir((pathlib.Path(__file__).parent / "build").absolute())
 
@@ -56,31 +69,29 @@ def main():
         check=True,
     )
 
-    p = createmsi.PackageGenerator(
-        {
-            "product_guid": "6ab45328-44f0-4af1-8bd7-9c58e9c42d6e",
-            "upgrade_guid": str(uuid.uuid4()),
-            "version": "0.0.0",
-            "product_name": "Sport Scorer",
-            "manufacturer": "Max Burgess",
-            "name": "Sport Scorer",
-            "name_base": "sportscorer",
-            "comments": "A comment describing the program",
-            "installdir": "SportScorer",
-            "license_file": "License.rtf",
-            "parts": [
-                {
-                    "id": "SportScorer",
-                    "title": "Sport Scorer",
-                    "description": "Sport Scorer Suite",
-                    "absent": "disallow",
-                    "staged_dir": "staging_main",
-                }
-            ],
-        }
+    # set the version number
+    soup.find("Wix").find("Package")["UpgradeCode"] = str(uuid.uuid4())
+
+    # write the XML back to sportscorer.wxs
+    with open("sportscorer.wxs", "w") as f:
+        f.write(str(soup))
+
+    subprocess.run(
+        [
+            "wix",
+            "build",
+            "-ext",
+            "WixToolset.UI.wixext",
+            "-bindvariable",
+            "WixUILicenseRtf=License.rtf",
+            "-arch",
+            "x64",
+            "-out",
+            "sportscorer-0.0.0-64.msi",
+            "sportscorer.wxs",
+        ],
+        check=True,
     )
-    p.generate_files()
-    p.build_package()
 
 
 if __name__ == "__main__":
