@@ -41,8 +41,7 @@ class UIGraphics:
 
 
 class PackageGenerator:
-    def __init__(self, jsonfile):
-        jsondata = json.load(open(jsonfile, "rb"))
+    def __init__(self, jsondata):
         self.product_name = jsondata["product_name"]
         self.manufacturer = jsondata["manufacturer"]
         self.version = jsondata["version"]
@@ -748,18 +747,3 @@ class PackageGenerator:
             cmd_arr += ["-bindvariable", "WixUILicenseRtf=" + self.license_file]
         cmd_arr += ["-arch", "x64", "-out", self.final_output, self.main_xml]
         subprocess.check_call(cmd_arr)
-
-
-def run(args):
-    if len(args) != 1:
-        sys.exit("createmsi.py <msi definition json>")
-    jsonfile = args[0]
-    if "/" in jsonfile or "\\" in jsonfile:
-        sys.exit("Input file %s must not contain a path segment." % jsonfile)
-    p = PackageGenerator(jsonfile)
-    p.generate_files()
-    p.build_package()
-
-
-if __name__ == "__main__":
-    run(sys.argv[1:])

@@ -5,3 +5,4 @@ sample_data/cache/*.racecache
 built_results.html
 built_results.py
 sample_data/athlete_photos/**
+build/staging/**
