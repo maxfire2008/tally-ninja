@@ -5,6 +5,7 @@ import os
 import uuid
 import zipfile
 import io
+import sys
 import bs4
 import requests
 
@@ -42,6 +43,8 @@ int main()
 
 
 def download_embedded_python(output_dir):
+    if len(sys.argv) > 1 and sys.argv[1] == "skip_download":
+        return
     if not isinstance(output_dir, pathlib.Path):
         output_dir = pathlib.Path(output_dir)
 
@@ -88,7 +91,7 @@ def main():
     os.chdir((pathlib.Path(__file__).parent / "build").absolute())
 
     subprocess.run(
-        ["wix", "extension", "add", "WixToolset.UI.wixext"],
+        ["wix", "extension", "add", "WixToolset.UI.wixext", "WixToolset.Heat"],
         check=True,
     )
 
@@ -112,16 +115,63 @@ def main():
         check=True,
     )
 
-    # recursively list all files in staging_pythonembedded/python_embedded
+    embedded_python_feature = soup.find("Feature", {"Id": "SportScorerEmbeddedPython"})
+    install_dir = soup.find("Directory", {"Id": "PythonEmbed"})
 
-    embedded_python_component = soup.find(
-        "Component", {"Id": "SportScorerEmbeddedPythonFiles"}
+    def list_directory(directory):
+        for path in directory.iterdir():
+            if path.is_dir():
+                # create a directory element <Directory Id="uuid" Name="name">
+                directory_element = soup.new_tag(
+                    "Directory", Id="D" + uuid.uuid4().hex, Name=path.name
+                )
+                # create a component element <Component Id="uuid" Guid="uuid">
+                embedded_python_component = soup.new_tag(
+                    "Component", Id="C" + uuid.uuid4().hex, Guid=str(uuid.uuid4())
+                )
+                # add the directory element to the parent
+                directory_element.append(embedded_python_component)
+
+                # add the component to the feature
+                embedded_python_feature.append(
+                    soup.new_tag("ComponentRef", Id=embedded_python_component["Id"])
+                )
+
+                # recurse
+                for child in list_directory(path):
+                    if child.name == "Directory":
+                        # add the child directory to the parent directory
+                        directory_element.append(child)
+                    elif child.name == "File":
+                        # add the child file to the component
+                        embedded_python_component.append(child)
+
+                # yield the directory element
+                yield directory_element
+            else:
+                # create a file element <File Id="uuid" Name="name" Source="path">
+                file_element = soup.new_tag(
+                    "File", Id="F" + uuid.uuid4().hex, Name=path.name, Source=str(path)
+                )
+                # yield the file element
+                yield file_element
+
+    embedded_python_component = soup.new_tag(
+        "Component", Id="C" + uuid.uuid4().hex, Guid=str(uuid.uuid4())
     )
+    embedded_python_feature.append(
+        soup.new_tag("ComponentRef", Id=embedded_python_component["Id"])
+    )
+    install_dir.append(embedded_python_component)
 
-    for root, dirs, files in os.walk("staging_pythonembedded/python_embedded"):
-        for file in files:
-            file_path = pathlib.Path(root) / file
-            file_id = str(uuid.uuid4())
+    # add the files to the component
+    for child in list_directory(pathlib.Path("staging_pythonembedded/python_embedded")):
+        if child.name == "Directory":
+            # add the child directory to the parent directory
+            install_dir.append(child)
+        elif child.name == "File":
+            # add the child file to the component
+            embedded_python_component.append(child)
 
     # write the XML back to sportscorer.wxs
     with open("sportscorer.wxs", "w") as f:
