@@ -1,2 +1,2 @@
-# sport-scorer
-Does a thing
+# Tally Ninja
+Silent, Deadly, Accurate Scoring
