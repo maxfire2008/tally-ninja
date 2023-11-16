@@ -1,2 +1,3 @@
 # Tally Ninja
-Silent, Deadly, Accurate Scoring
+Sharpen your event's edge with
+Reliable, Extensible, Deadly Scoring
