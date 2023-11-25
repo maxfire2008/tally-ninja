@@ -73,34 +73,20 @@ def main():
     shutil.copy("src/editor.py", "build/staging_main/editor.py")
     new_launcher("src/editor.py", "build/staging_main/editor.exe", python_path="pyw")
 
-    pathlib.Path("build/staging_pythonembedded").mkdir(parents=True, exist_ok=True)
-
     new_launcher(
         "src/editor.py",
-        "build/staging_pythonembedded/editor.exe",
+        "build/staging_main/editor.exe",
         python_path="./pythonembedded/pythonw.exe",
     )
 
     shutil.copy("LICENSE.md", "build/License.rtf")
     shutil.copy("requirements.txt", "build/requirements.txt")
 
-    # open sportscorer.wxs and read the XML
-    with open("sportscorer.wxs", "r") as f:
-        soup = bs4.BeautifulSoup(f.read(), "xml")
+    os.chdir("build")
 
-    os.chdir((pathlib.Path(__file__).parent / "build").absolute())
+    download_embedded_python("staging_main/python_embedded")
 
-    subprocess.run(
-        ["wix", "extension", "add", "WixToolset.UI.wixext", "WixToolset.Heat"],
-        check=True,
-    )
-
-    # set the version number
-    soup.find("Wix").find("Package")["UpgradeCode"] = str(uuid.uuid4())
-
-    download_embedded_python("staging_pythonembedded/python_embedded")
-
-    # install packages from requirements.txt to staging_pythonembedded/python_embedded/Lib/site-packages
+    # install packages from requirements.txt to staging_main/python_embedded/Lib/site-packages
     subprocess.run(
         [
             "py",
@@ -110,89 +96,12 @@ def main():
             "-r",
             "requirements.txt",
             "--target",
-            "staging_pythonembedded/python_embedded/Lib/site-packages",
+            "staging_main/python_embedded/Lib/site-packages",
         ],
         check=True,
     )
 
-    embedded_python_feature = soup.find("Feature", {"Id": "SportScorerEmbeddedPython"})
-    install_dir = soup.find("Directory", {"Id": "PythonEmbed"})
-
-    def list_directory(directory):
-        for path in directory.iterdir():
-            if path.is_dir():
-                # create a directory element <Directory Id="uuid" Name="name">
-                directory_element = soup.new_tag(
-                    "Directory", Id="D" + uuid.uuid4().hex, Name=path.name
-                )
-                # create a component element <Component Id="uuid" Guid="uuid">
-                embedded_python_component = soup.new_tag(
-                    "Component", Id="C" + uuid.uuid4().hex, Guid=str(uuid.uuid4())
-                )
-                # add the directory element to the parent
-                directory_element.append(embedded_python_component)
-
-                # add the component to the feature
-                embedded_python_feature.append(
-                    soup.new_tag("ComponentRef", Id=embedded_python_component["Id"])
-                )
-
-                # recurse
-                for child in list_directory(path):
-                    if child.name == "Directory":
-                        # add the child directory to the parent directory
-                        directory_element.append(child)
-                    elif child.name == "File":
-                        # add the child file to the component
-                        embedded_python_component.append(child)
-
-                # yield the directory element
-                yield directory_element
-            else:
-                # create a file element <File Id="uuid" Name="name" Source="path">
-                file_element = soup.new_tag(
-                    "File", Id="F" + uuid.uuid4().hex, Name=path.name, Source=str(path)
-                )
-                # yield the file element
-                yield file_element
-
-    embedded_python_component = soup.new_tag(
-        "Component", Id="C" + uuid.uuid4().hex, Guid=str(uuid.uuid4())
-    )
-    embedded_python_feature.append(
-        soup.new_tag("ComponentRef", Id=embedded_python_component["Id"])
-    )
-    install_dir.append(embedded_python_component)
-
-    # add the files to the component
-    for child in list_directory(pathlib.Path("staging_pythonembedded/python_embedded")):
-        if child.name == "Directory":
-            # add the child directory to the parent directory
-            install_dir.append(child)
-        elif child.name == "File":
-            # add the child file to the component
-            embedded_python_component.append(child)
-
-    # write the XML back to sportscorer.wxs
-    with open("sportscorer.wxs", "w") as f:
-        f.write(str(soup))
-
-    subprocess.run(
-        [
-            "wix",
-            "build",
-            "-ext",
-            "WixToolset.UI.wixext",
-            "-bindvariable",
-            "WixUILicenseRtf=License.rtf",
-            "-arch",
-            "x64",
-            "-out",
-            "sportscorer-0.0.0-64.msi",
-            "sportscorer.wxs",
-        ],
-        check=True,
-    )
+    print("Done! Make sure to create the NSIS installer!")
 
 
 if __name__ == "__main__":
