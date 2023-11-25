@@ -895,14 +895,16 @@ def tally_data(
 def results_to_html(
     tally_board,
     open_database: bool = False,
-    results_folder: pathlib.Path = None,
+    data_folder: pathlib.Path = None,
     database_lock: raceml.DatabaseLock = None,
+    template: str = None,
+    write_file: bool = False,
 ):
     if open_database:
         if database_lock is None:
             raise ValueError("database_lock must be provided if open_database is True")
-        if results_folder is None:
-            raise ValueError("results_folder must be provided if open_database is True")
+        if data_folder is None:
+            raise ValueError("data_folder must be provided if open_database is True")
         database_lock.check()
 
     leagues = {}
@@ -932,10 +934,10 @@ def results_to_html(
             for event in athlete_results["per_event"].keys():
                 if open_database:
                     event_name = raceml.load(
-                        results_folder / "results" / event, cache=True
+                        data_folder / "results" / event, cache=True
                     )["name"]
                     event_date = raceml.load(
-                        results_folder / "results" / event, cache=True
+                        data_folder / "results" / event, cache=True
                     )["date"]
                 else:
                     event_name = event
@@ -1116,14 +1118,19 @@ def results_to_html(
 
         leagues[league] = current_league
 
-    with open("template.html", "r", encoding="utf-8") as tf:
-        template = jinja2.Template(tf.read())
+    if template is None:
+        with open("template.html", "r", encoding="utf-8") as tf:
+            template = jinja2.Template(tf.read())
 
-    # write html file
-    with open("built_results.html", "w", encoding="utf-8") as f:
-        f.write(
-            template.render(leagues=leagues, league_total_points=league_total_points)
-        )
+    results_html = template.render(
+        leagues=leagues, league_total_points=league_total_points
+    )
+
+    if write_file:
+        with open("built_results.html", "w", encoding="utf-8") as f:
+            f.write(results_html)
+
+    return results_html
 
 
 if __name__ == "__main__":
@@ -1146,8 +1153,9 @@ if __name__ == "__main__":
         results_to_html(
             tb,
             open_database=True,
-            results_folder=data_folder,
+            data_folder=data_folder,
             database_lock=database_lock,
+            write_file=True,
         )
     finally:
         database_lock.release()
