@@ -571,7 +571,7 @@ def tally_data(
     for item in code_folder.glob("*"):
         if not item.is_file():
             continue
-        if item.name in [".DS_Store", "built_results.html"]:
+        if item.name in [".DS_Store", "built_results.html", "built_results.py"]:
             continue
         code_hash_items.append(item)
         with open(item, "rb") as file:

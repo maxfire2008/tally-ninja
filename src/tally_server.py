@@ -25,6 +25,18 @@ def html_results():
 
 
 if __name__ == "__main__":
-    app.config["DATABASE_FOLDER"] = pathlib.Path(sys.argv[1])
+    if len(sys.argv) < 3:
+        print("Usage: py tally_server.py <database_folder> <listen_address>")
+        sys.exit(1)
 
-    waitress.serve(app, listen=sys.argv[2])
+    database_folder = pathlib.Path(sys.argv[1]).absolute()
+    if not database_folder.exists():
+        print(f"Database folder {database_folder} does not exist")
+        sys.exit(1)
+
+    listen_address = sys.argv[2]
+
+    print(f"Starting tally server on {listen_address} with database {database_folder}")
+
+    app.config["DATABASE_FOLDER"] = database_folder
+    waitress.serve(app, listen=listen_address)
