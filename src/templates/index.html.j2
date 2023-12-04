@@ -1,0 +1,10 @@
+{% extends "base.html.j2" %}
+{% block content %}
+    <ul>
+        {% for file in files %}
+            <li>
+                <a href="{{ file.link }}">{{ file.name }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
