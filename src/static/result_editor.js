@@ -5,6 +5,7 @@
 class ResultEditor {
   constructor(data) {
     this.data = data;
+    this.changed_data = {};
     var header = document.getElementById("header");
 
     var nameDiv = document.createElement("div");
@@ -16,7 +17,7 @@ class ResultEditor {
     nameInput.id = "name";
     nameInput.value = data.name;
     nameInput.onchange = () => {
-      this.data.name = nameInput.value;
+      this.changed_data.name = nameInput.value;
     };
     nameDiv.appendChild(nameLabel);
     nameDiv.appendChild(nameInput);
@@ -31,7 +32,7 @@ class ResultEditor {
     distanceInput.id = "distance";
     distanceInput.value = data.distance;
     distanceInput.onchange = () => {
-      this.data.distance = distanceInput.value;
+      this.changed_data.distance = distanceInput.value;
     };
     distanceDiv.appendChild(distanceLabel);
     distanceDiv.appendChild(distanceInput);
@@ -46,7 +47,7 @@ class ResultEditor {
     dateInput.id = "date";
     dateInput.value = data.date;
     dateInput.onchange = () => {
-      this.data.date = dateInput.value;
+      this.changed_data.date = dateInput.value;
     };
     dateDiv.appendChild(dateLabel);
     dateDiv.appendChild(dateInput);
@@ -63,6 +64,7 @@ class Result {
   constructor(athlete_id, data) {
     this.athlete_id = athlete_id;
     this.data = data;
+    this.changed_data = {};
 
     this.element = document.createElement("div");
     this.element.className = "result";
@@ -91,7 +93,7 @@ class Result {
     finishTimeInput.id = "finish_time";
     finishTimeInput.value = data.finish_time;
     finishTimeInput.onchange = () => {
-      this.data.finish_time = finishTimeInput.value;
+      this.changed_data.finish_time = finishTimeInput.value;
     };
     finishTimeDiv.appendChild(finishTimeLabel);
     finishTimeDiv.appendChild(finishTimeInput);
@@ -106,7 +108,7 @@ class Result {
     dnfInput.id = "dnf";
     dnfInput.checked = data.DNF;
     dnfInput.onchange = () => {
-      this.data.DNF = dnfInput.checked;
+      this.changed_data.DNF = dnfInput.checked;
     };
     dnfDiv.appendChild(dnfLabel);
     dnfDiv.appendChild(dnfInput);
@@ -121,7 +123,7 @@ class Result {
     dnsInput.id = "dns";
     dnsInput.checked = data.DNS;
     dnsInput.onchange = () => {
-      this.data.DNS = dnsInput.checked;
+      this.changed_data.DNS = dnsInput.checked;
     };
     dnsDiv.appendChild(dnsLabel);
     dnsDiv.appendChild(dnsInput);
@@ -136,7 +138,7 @@ class Result {
     dqInput.id = "dq";
     dqInput.checked = data.DQ;
     dqInput.onchange = () => {
-      this.data.DQ = dqInput.checked;
+      this.changed_data.DQ = dqInput.checked;
     };
     dqDiv.appendChild(dqLabel);
     dqDiv.appendChild(dqInput);
