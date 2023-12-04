@@ -97,8 +97,6 @@ def main():
         check=True,
     )
 
-    print("Done! Make sure to create the NSIS installer!")
-
 
 if __name__ == "__main__":
     main()
