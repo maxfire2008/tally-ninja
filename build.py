@@ -69,17 +69,13 @@ def main():
     pathlib.Path("build/staging_main").mkdir(parents=True, exist_ok=True)
 
     shutil.copy("src/raceml.py", "build/staging_main/raceml.py")
-
     shutil.copy("src/editor.py", "build/staging_main/editor.py")
-    new_launcher("src/editor.py", "build/staging_main/editor.exe", python_path="pyw")
-
     new_launcher(
         "src/editor.py",
         "build/staging_main/editor.exe",
         python_path="./pythonembedded/pythonw.exe",
     )
 
-    shutil.copy("LICENSE.md", "build/License.rtf")
     shutil.copy("requirements.txt", "build/requirements.txt")
 
     os.chdir("build")
