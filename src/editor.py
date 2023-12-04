@@ -4,6 +4,7 @@ import pathlib
 import uuid
 import decimal
 import time
+import cProfile
 
 import wx
 import wx.adv
@@ -78,13 +79,7 @@ class AthleteSelector(wx.Dialog):
 
         self.buttons = []
 
-        self.panel = wx.lib.scrolledpanel.ScrolledPanel(self)
-        self.panel.SetupScrolling(scroll_x=False)
-        editor_panel_resize = lambda event=None: self.panel.SetSize(
-            self.panel.GetSize()
-        )
-        editor_panel_resize()
-        self.panel.Bind(wx.EVT_SIZE, editor_panel_resize)
+        self.panel = wx.Panel(self)
 
         # create a sizer
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -92,65 +87,75 @@ class AthleteSelector(wx.Dialog):
         # add a text input for search at the top of self.top_panel
         search_box = wx.TextCtrl(self.panel)
         search_box.Bind(wx.EVT_TEXT, self.filter_results)
+        self.sizer.Add(search_box, 0, wx.EXPAND)
+
+        self.athlete_list = wx.ListCtrl(
+            self.panel,
+            style=wx.LC_REPORT | wx.BORDER_SUNKEN,
+        )
+
+        self.athlete_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
+        self.athlete_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
+
+        self.athlete_list.InsertColumn(0, "", width=100)
+        self.athlete_list.InsertColumn(1, "Name", width=400)
+
+        self.image_list = wx.ImageList(100, 100)
 
         for athlete_data, athlete_id in athlete_list:
-            self.create_button(athlete_data, athlete_id)
-        self.create_button(athlete_data={"name": "None"}, athlete_id=None)
+            self.create_list_item(athlete_data, athlete_id)
+        self.create_list_item(athlete_data={"name": "None"}, athlete_id=None)
+
+        self.sizer.Add(self.athlete_list, 1, wx.EXPAND)
 
         self.panel.SetSizer(self.sizer)
 
     def filter_results(self, event):
         # print the content of the search box
         search_text = event.GetString().lower()
-        for button in self.buttons:
-            if search_text in button.GetLabel().lower():
-                button.Show()
-            else:
-                button.Hide()
+        print(search_text)
 
-        self.panel.FitInside()
-        self.panel.SetSize(self.panel.GetSize())
-        self.panel.Layout()
+    def create_list_item(self, athlete_data, athlete_id):
+        # if athlete_id:
+        #     try:
+        #         athlete_photo_bytes = raceml.lookup_athlete_photo(
+        #             athlete_id, self.athlete_photos_folder, self.database_lock
+        #         )
+        #     except FileNotFoundError:
+        #         athlete_photo_bytes = None
+        # else:
+        #     athlete_photo_bytes = None
 
-    def create_button(self, athlete_data, athlete_id):
-        # create a button with the athlete's name and image
-        athlete_button = wx.Button(
-            self.panel,
-            label=athlete_data["name"],
+        # if athlete_photo_bytes is not None:
+        #     athlete_photo = wx.Image(io.BytesIO(athlete_photo_bytes))
+        #     athlete_photo.Rescale(100, 100)
+        # else:
+        #     athlete_photo = wx.Image(100, 100)
+
+        # Athlete name athlete_data["name"]
+        # Athlete team colour wx.Colour(self.team_colours.get(athlete_data.get("team"), "white"))
+        # Athlete photo wx.Bitmap(athlete_photo)
+        # create a list item with the above data
+
+        athlete_photo = wx.Image(100, 100)
+
+        index = self.image_list.Add(wx.Bitmap(athlete_photo))
+        self.athlete_list.InsertItem(index, "")
+        self.athlete_list.SetItem(index, 1, athlete_data["name"])
+        # set the image for the item
+        self.athlete_list.SetItemImage(index, index, wx.TreeItemIcon_Normal)
+        self.athlete_list.SetItemBackgroundColour(
+            index, wx.Colour(self.team_colours.get(athlete_data.get("team"), "white"))
         )
-
-        # set the background colour to the athlete's team colour
-        athlete_button.SetBackgroundColour(
-            wx.Colour(self.team_colours.get(athlete_data.get("team"), "white"))
-        )
-
-        if athlete_id:
-            try:
-                athlete_photo_bytes = raceml.lookup_athlete_photo(
-                    athlete_id, self.athlete_photos_folder, self.database_lock
-                )
-            except FileNotFoundError:
-                athlete_photo_bytes = None
-        else:
-            athlete_photo_bytes = None
-
-        if athlete_photo_bytes is not None:
-            athlete_photo = wx.Image(io.BytesIO(athlete_photo_bytes))
-            athlete_photo.Rescale(100, 100)
-        else:
-            athlete_photo = wx.Image(100, 100)
-
-        athlete_button.SetBitmap(wx.Bitmap(athlete_photo))
-        athlete_button.Bind(
-            wx.EVT_BUTTON,
-            lambda e: self._end_modal_success(athlete_id),
-        )
-        self.sizer.Add(athlete_button, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.buttons.append(athlete_button)
 
     def get_selected_id(self):
         return self._selected
+
+    def OnItemSelected(self, event):
+        print("s", event.GetItem().GetText())
+
+    def OnItemActivated(self, event):
+        print("a", event.GetItem().GetText())
 
     def _end_modal_success(self, athlete_id):
         self._selected = athlete_id
@@ -492,6 +497,9 @@ class Editor(wx.Frame):
             athlete_id = athlete.stem
             available_athletes.append((athlete_data, athlete_id))
 
+        p = cProfile.Profile()
+        p.enable()
+
         athlete_selector = AthleteSelector(
             self,
             available_athletes,
@@ -502,6 +510,9 @@ class Editor(wx.Frame):
         )
 
         status = athlete_selector.ShowModal()
+
+        p.disable()
+        p.print_stats()
 
         if status == wx.ID_CANCEL:
             return current_selection
