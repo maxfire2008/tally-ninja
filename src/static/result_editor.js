@@ -2,6 +2,13 @@
 /  data = {'type': 'race', 'name': 'Duathlon Short Course', 'distance': 'short_course', 'date': datetime.date(2023, 7, 1), 'results': {'donald_trump': {'finish_time': 3473430}, 'joe_biden': {'finish_time': 3382120}, 'kamala_harris': {'finish_time': 2537320}, 'hillary_clinton': {'finish_time': 2964450}, 'mitch_mcconnell': {'DNF': True}, 'nancy_pelosi': {'finish_time': 2172180}, 'bernie_sanders': {'finish_time': 9123850}, 'elizabeth_warren': {'finish_time': 2172180}}, '_filepath': '..\\sample_data\\results\\duathlon\\2023-07-duathlon-short.yaml', '_filename': '2023-07-duathlon-short.yaml'}
 /  result_editor = new ResultEditor(data); */
 
+var last_id = 0;
+
+function new_id() {
+  last_id += 1;
+  return last_id;
+}
+
 class ResultEditor {
   constructor(data) {
     this.data = data;
@@ -10,7 +17,7 @@ class ResultEditor {
 
     var nameDiv = document.createElement("div");
     var nameLabel = document.createElement("label");
-    nameLabel.for = "name";
+    nameLabel.htmlFor = "name";
     nameLabel.innerHTML = "Name";
     var nameInput = document.createElement("input");
     nameInput.type = "text";
@@ -25,7 +32,7 @@ class ResultEditor {
 
     var distanceDiv = document.createElement("div");
     var distanceLabel = document.createElement("label");
-    distanceLabel.for = "distance";
+    distanceLabel.htmlFor = "distance";
     distanceLabel.innerHTML = "Distance";
     var distanceInput = document.createElement("input");
     distanceInput.type = "text";
@@ -40,7 +47,7 @@ class ResultEditor {
 
     var dateDiv = document.createElement("div");
     var dateLabel = document.createElement("label");
-    dateLabel.for = "date";
+    dateLabel.htmlFor = "date";
     dateLabel.innerHTML = "Date";
     var dateInput = document.createElement("input");
     dateInput.type = "date";
@@ -64,6 +71,7 @@ class Result {
   constructor(athlete_id, data) {
     this.athlete_id = athlete_id;
     this.data = data;
+    this.id = new_id();
     this.changed_data = {};
 
     this.element = document.createElement("div");
@@ -71,11 +79,11 @@ class Result {
 
     var athleteDiv = document.createElement("div");
     var athleteLabel = document.createElement("label");
-    athleteLabel.for = "athlete";
+    athleteLabel.htmlFor = "athlete" + this.id;
     athleteLabel.innerHTML = "Athlete";
     var athleteInput = document.createElement("input");
     athleteInput.type = "text";
-    athleteInput.id = "athlete";
+    athleteInput.id = "athlete" + this.id;
     athleteInput.value = athlete_id;
     athleteInput.onchange = () => {
       this.athlete_id = athleteInput.value;
@@ -86,11 +94,11 @@ class Result {
 
     var finishTimeDiv = document.createElement("div");
     var finishTimeLabel = document.createElement("label");
-    finishTimeLabel.for = "finish_time";
+    finishTimeLabel.htmlFor = "finish_time" + this.id;
     finishTimeLabel.innerHTML = "Finish Time";
     var finishTimeInput = document.createElement("input");
     finishTimeInput.type = "text";
-    finishTimeInput.id = "finish_time";
+    finishTimeInput.id = "finish_time" + this.id;
     finishTimeInput.value = data.finish_time;
     finishTimeInput.onchange = () => {
       this.changed_data.finish_time = finishTimeInput.value;
@@ -101,11 +109,11 @@ class Result {
 
     var dnfDiv = document.createElement("div");
     var dnfLabel = document.createElement("label");
-    dnfLabel.for = "dnf";
+    dnfLabel.htmlFor = "dnf" + this.id;
     dnfLabel.innerHTML = "Did Not Finish";
     var dnfInput = document.createElement("input");
     dnfInput.type = "checkbox";
-    dnfInput.id = "dnf";
+    dnfInput.id = "dnf" + this.id;
     dnfInput.checked = data.DNF;
     dnfInput.onchange = () => {
       this.changed_data.DNF = dnfInput.checked;
@@ -116,11 +124,11 @@ class Result {
 
     var dnsDiv = document.createElement("div");
     var dnsLabel = document.createElement("label");
-    dnsLabel.for = "dns";
+    dnsLabel.htmlFor = "dns" + this.id;
     dnsLabel.innerHTML = "Did Not Start";
     var dnsInput = document.createElement("input");
     dnsInput.type = "checkbox";
-    dnsInput.id = "dns";
+    dnsInput.id = "dns" + this.id;
     dnsInput.checked = data.DNS;
     dnsInput.onchange = () => {
       this.changed_data.DNS = dnsInput.checked;
@@ -131,11 +139,11 @@ class Result {
 
     var dqDiv = document.createElement("div");
     var dqLabel = document.createElement("label");
-    dqLabel.for = "dq";
+    dqLabel.htmlFor = "dq" + this.id;
     dqLabel.innerHTML = "Disqualified";
     var dqInput = document.createElement("input");
     dqInput.type = "checkbox";
-    dqInput.id = "dq";
+    dqInput.id = "dq" + this.id;
     dqInput.checked = data.DQ;
     dqInput.onchange = () => {
       this.changed_data.DQ = dqInput.checked;

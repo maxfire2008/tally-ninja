@@ -31,7 +31,7 @@ def result(filename):
     data = raceml.load(filepath)
     if data["type"] == "race":
         data["date"] = data["date"].isoformat()
-        return flask.render_template("result.html.j2", data=data)
+        return flask.render_template("result_editor.html.j2", data=data)
     else:
         return "Result type not supported", 501
 
