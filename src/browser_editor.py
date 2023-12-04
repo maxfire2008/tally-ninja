@@ -29,8 +29,11 @@ def index():
 def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
     data = raceml.load(filepath)
-    data["date"] = data["date"].isoformat()
-    return flask.render_template("result.html.j2", data=data)
+    if data["type"] == "race":
+        data["date"] = data["date"].isoformat()
+        return flask.render_template("result.html.j2", data=data)
+    else:
+        return "Result type not supported", 501
 
 
 if __name__ == "__main__":
