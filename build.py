@@ -71,9 +71,9 @@ def main():
     shutil.copy("src/raceml.py", "build/staging_main/raceml.py")
     shutil.copy("src/editor.py", "build/staging_main/editor.py")
     new_launcher(
-        "src/editor.py",
+        "editor.py",
         "build/staging_main/editor.exe",
-        python_path="./pythonembedded/pythonw.exe",
+        python_path="./python_embedded/pythonw.exe",
     )
 
     shutil.copy("requirements.txt", "build/requirements.txt")
