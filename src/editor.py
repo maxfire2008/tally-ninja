@@ -3,6 +3,7 @@ import io
 import pathlib
 import uuid
 import decimal
+import time
 
 import wx
 import wx.adv
@@ -75,6 +76,8 @@ class AthleteSelector(wx.Dialog):
         self.athlete_photos_folder = athlete_photos_folder
         self.team_colours = team_colours
 
+        self.buttons = []
+
         self.panel = wx.lib.scrolledpanel.ScrolledPanel(self)
         self.panel.SetupScrolling(scroll_x=False)
         editor_panel_resize = lambda event=None: self.panel.SetSize(
@@ -86,11 +89,28 @@ class AthleteSelector(wx.Dialog):
         # create a sizer
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
+        # add a text input for search at the top of self.top_panel
+        search_box = wx.TextCtrl(self.panel)
+        search_box.Bind(wx.EVT_TEXT, self.filter_results)
+
         for athlete_data, athlete_id in athlete_list:
             self.create_button(athlete_data, athlete_id)
         self.create_button(athlete_data={"name": "None"}, athlete_id=None)
 
         self.panel.SetSizer(self.sizer)
+
+    def filter_results(self, event):
+        # print the content of the search box
+        search_text = event.GetString().lower()
+        for button in self.buttons:
+            if search_text in button.GetLabel().lower():
+                button.Show()
+            else:
+                button.Hide()
+
+        self.panel.FitInside()
+        self.panel.SetSize(self.panel.GetSize())
+        self.panel.Layout()
 
     def create_button(self, athlete_data, athlete_id):
         # create a button with the athlete's name and image
@@ -116,16 +136,18 @@ class AthleteSelector(wx.Dialog):
 
         if athlete_photo_bytes is not None:
             athlete_photo = wx.Image(io.BytesIO(athlete_photo_bytes))
+            athlete_photo.Rescale(100, 100)
         else:
             athlete_photo = wx.Image(100, 100)
 
-        athlete_photo.Rescale(100, 100)
         athlete_button.SetBitmap(wx.Bitmap(athlete_photo))
         athlete_button.Bind(
             wx.EVT_BUTTON,
             lambda e: self._end_modal_success(athlete_id),
         )
         self.sizer.Add(athlete_button, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.buttons.append(athlete_button)
 
     def get_selected_id(self):
         return self._selected
@@ -363,7 +385,11 @@ class Editor(wx.Frame):
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return
             self.database = pathlib.Path(fileDialog.GetPath())
-            self.config = raceml.load(self.database / "config.yaml")
+            # check for a config file
+            if (self.database / "config.yaml").exists():
+                self.config = raceml.load(self.database / "config.yaml")
+            else:
+                self.config = {}
 
             # make sure to get the lock file: sports-scorer.lock
             # if it doesn't exist, create it
@@ -672,11 +698,8 @@ class Editor(wx.Frame):
             "row_order": [],
             "uneditable": [],
             "cleanup_function": self.raceEditorCleanup,
+            "editor_panel": wx.lib.scrolledpanel.ScrolledPanel(self.panel),
         }
-
-        self.editor_state["editor_panel"] = wx.lib.scrolledpanel.ScrolledPanel(
-            self.panel
-        )
         self.editor_state["editor_panel"].SetupScrolling(scroll_x=False)
         editor_panel_resize = lambda event=None: self.editor_state[
             "editor_panel"
