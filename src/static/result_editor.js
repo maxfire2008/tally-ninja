@@ -18,7 +18,7 @@ class ResultEditor {
     var nameDiv = document.createElement("div");
     var nameLabel = document.createElement("label");
     nameLabel.htmlFor = "name";
-    nameLabel.innerHTML = "Name";
+    nameLabel.textContent = "Name";
     var nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.id = "name";
@@ -33,7 +33,7 @@ class ResultEditor {
     var distanceDiv = document.createElement("div");
     var distanceLabel = document.createElement("label");
     distanceLabel.htmlFor = "distance";
-    distanceLabel.innerHTML = "Distance";
+    distanceLabel.textContent = "Distance";
     var distanceInput = document.createElement("input");
     distanceInput.type = "text";
     distanceInput.id = "distance";
@@ -48,7 +48,7 @@ class ResultEditor {
     var dateDiv = document.createElement("div");
     var dateLabel = document.createElement("label");
     dateLabel.htmlFor = "date";
-    dateLabel.innerHTML = "Date";
+    dateLabel.textContent = "Date";
     var dateInput = document.createElement("input");
     dateInput.type = "date";
     dateInput.id = "date";
@@ -74,28 +74,20 @@ class Result {
     this.id = new_id();
     this.changed_data = {};
 
-    this.element = document.createElement("div");
+    this.element = document.createElement("tr");
     this.element.className = "result";
 
-    var athleteDiv = document.createElement("div");
-    var athleteLabel = document.createElement("label");
-    athleteLabel.htmlFor = "athlete" + this.id;
-    athleteLabel.innerHTML = "Athlete";
-    var athleteInput = document.createElement("input");
-    athleteInput.type = "text";
-    athleteInput.id = "athlete" + this.id;
-    athleteInput.value = athlete_id;
-    athleteInput.onchange = () => {
-      this.athlete_id = athleteInput.value;
+    var athleteCell = document.createElement("td");
+    var athleteButton = document.createElement("button");
+    athleteButton.id = "athlete" + this.id;
+    athleteButton.textContent = athlete_id;
+    athleteButton.onclick = () => {
+      this.athlete_id = chooseAthlete();
     };
-    athleteDiv.appendChild(athleteLabel);
-    athleteDiv.appendChild(athleteInput);
-    this.element.appendChild(athleteDiv);
+    athleteCell.appendChild(athleteButton);
+    this.element.appendChild(athleteCell);
 
-    var finishTimeDiv = document.createElement("div");
-    var finishTimeLabel = document.createElement("label");
-    finishTimeLabel.htmlFor = "finish_time" + this.id;
-    finishTimeLabel.innerHTML = "Finish Time";
+    var finishTimeCell = document.createElement("td");
     var finishTimeInput = document.createElement("input");
     finishTimeInput.type = "text";
     finishTimeInput.id = "finish_time" + this.id;
@@ -103,14 +95,10 @@ class Result {
     finishTimeInput.onchange = () => {
       this.changed_data.finish_time = finishTimeInput.value;
     };
-    finishTimeDiv.appendChild(finishTimeLabel);
-    finishTimeDiv.appendChild(finishTimeInput);
-    this.element.appendChild(finishTimeDiv);
+    finishTimeCell.appendChild(finishTimeInput);
+    this.element.appendChild(finishTimeCell);
 
-    var dnfDiv = document.createElement("div");
-    var dnfLabel = document.createElement("label");
-    dnfLabel.htmlFor = "dnf" + this.id;
-    dnfLabel.innerHTML = "Did Not Finish";
+    var dnfCell = document.createElement("td");
     var dnfInput = document.createElement("input");
     dnfInput.type = "checkbox";
     dnfInput.id = "dnf" + this.id;
@@ -118,14 +106,10 @@ class Result {
     dnfInput.onchange = () => {
       this.changed_data.DNF = dnfInput.checked;
     };
-    dnfDiv.appendChild(dnfLabel);
-    dnfDiv.appendChild(dnfInput);
-    this.element.appendChild(dnfDiv);
+    dnfCell.appendChild(dnfInput);
+    this.element.appendChild(dnfCell);
 
-    var dnsDiv = document.createElement("div");
-    var dnsLabel = document.createElement("label");
-    dnsLabel.htmlFor = "dns" + this.id;
-    dnsLabel.innerHTML = "Did Not Start";
+    var dnsCell = document.createElement("td");
     var dnsInput = document.createElement("input");
     dnsInput.type = "checkbox";
     dnsInput.id = "dns" + this.id;
@@ -133,14 +117,10 @@ class Result {
     dnsInput.onchange = () => {
       this.changed_data.DNS = dnsInput.checked;
     };
-    dnsDiv.appendChild(dnsLabel);
-    dnsDiv.appendChild(dnsInput);
-    this.element.appendChild(dnsDiv);
+    dnsCell.appendChild(dnsInput);
+    this.element.appendChild(dnsCell);
 
-    var dqDiv = document.createElement("div");
-    var dqLabel = document.createElement("label");
-    dqLabel.htmlFor = "dq" + this.id;
-    dqLabel.innerHTML = "Disqualified";
+    var dqCell = document.createElement("td");
     var dqInput = document.createElement("input");
     dqInput.type = "checkbox";
     dqInput.id = "dq" + this.id;
@@ -148,11 +128,32 @@ class Result {
     dqInput.onchange = () => {
       this.changed_data.DQ = dqInput.checked;
     };
-    dqDiv.appendChild(dqLabel);
-    dqDiv.appendChild(dqInput);
-    this.element.appendChild(dqDiv);
+    dqCell.appendChild(dqInput);
+    this.element.appendChild(dqCell);
 
     var athletes = document.getElementById("athletes");
     athletes.appendChild(this.element);
   }
+}
+
+function chooseAthlete() {
+  // add a modal to choose an athlete
+  var modal = document.createElement("div");
+  modal.className = "modal";
+  var modalContent = document.createElement("div");
+  var modalTitle = document.createElement("h2");
+  modalTitle.textContent = "Choose Athlete";
+  modalContent.appendChild(modalTitle);
+  var modalList = document.createElement("div");
+  for (var athlete of athlete_list) {
+    var athleteButton = document.createElement("button");
+    athleteButton.textContent = athlete.name;
+    athleteButton.onclick = () => {
+      alert("athlete clicked");
+    };
+    modalList.appendChild(athleteButton);
+  }
+  modalContent.appendChild(modalList);
+  modal.appendChild(modalContent);
+  document.body.appendChild(modal);
 }

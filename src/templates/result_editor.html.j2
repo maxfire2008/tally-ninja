@@ -1,14 +1,27 @@
 {% extends "base.html.j2" %}
-{% block head %}
-    <link rel="stylesheet" href="/static/result_editor.css">
-{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/result_editor.css">{% endblock %}
 {% block content %}
     {# data = {'type': 'race', 'name': 'Duathlon Short Course', 'distance': 'short_course', 'date': datetime.date(2023, 7, 1), 'results': {'donald_trump': {'finish_time': 3473430}, 'joe_biden': {'finish_time': 3382120}, 'kamala_harris': {'finish_time': 2537320}, 'hillary_clinton': {'finish_time': 2964450}, 'mitch_mcconnell': {'DNF': True}, 'nancy_pelosi': {'finish_time': 2172180}, 'bernie_sanders': {'finish_time': 9123850}, 'elizabeth_warren': {'finish_time': 2172180}}, '_filepath': '..\\sample_data\\results\\duathlon\\2023-07-duathlon-short.yaml', '_filename': '2023-07-duathlon-short.yaml'}  #}
     <div id="header"></div>
-    <div id="athletes"></div>
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Athlete</th>
+                    <th>Finish Time</th>
+                    <th>DNF</th>
+                    <th>DNS</th>
+                    <th>DQ</th>
+                </tr>
+            </thead>
+            <tbody id="athletes">
+            </tbody>
+        </table>
+    </div>
     <script src="/static/result_editor.js"></script>
     <script>
         var data = {{ data | tojson }};
+        var athlete_list = {{ athlete_list | tojson }};
         var editor = new ResultEditor(data);
     </script>
 {% endblock %}
