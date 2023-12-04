@@ -578,6 +578,9 @@ class Editor(wx.Frame):
                 ]["time_input"]
                 next_input.SetFocus()
                 next_input.SetInsertionPointEnd()
+            if event_keycode == wx.WXK_RETURN:
+                # create a new row
+                self.raceEditorAddResult()
 
     def deleteResult(self, event: wx.Event, row_uuid: uuid.UUID) -> None:
         self.editor_state["unsaved"] = True
