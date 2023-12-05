@@ -12,7 +12,6 @@ function new_id() {
 class ResultEditor {
   constructor(data) {
     this.data = data;
-    this.changed_data = {};
     var header = document.getElementById("header");
 
     var nameDiv = document.createElement("div");
@@ -24,7 +23,7 @@ class ResultEditor {
     nameInput.id = "name";
     nameInput.value = data.name;
     nameInput.onchange = () => {
-      this.changed_data.name = nameInput.value;
+      this.data.name = nameInput.value;
     };
     nameDiv.appendChild(nameLabel);
     nameDiv.appendChild(nameInput);
@@ -39,7 +38,7 @@ class ResultEditor {
     distanceInput.id = "distance";
     distanceInput.value = data.distance;
     distanceInput.onchange = () => {
-      this.changed_data.distance = distanceInput.value;
+      this.data.distance = distanceInput.value;
     };
     distanceDiv.appendChild(distanceLabel);
     distanceDiv.appendChild(distanceInput);
@@ -54,7 +53,7 @@ class ResultEditor {
     dateInput.id = "date";
     dateInput.value = data.date;
     dateInput.onchange = () => {
-      this.changed_data.date = dateInput.value;
+      this.data.date = dateInput.value;
     };
     dateDiv.appendChild(dateLabel);
     dateDiv.appendChild(dateInput);
@@ -65,6 +64,18 @@ class ResultEditor {
       this.results.push(new Result(athlete_id, data.results[athlete_id]));
     }
   }
+
+  save() {
+    var data = this.data;
+    data.results = {};
+    for (var result of this.results) {
+      data.results[result.athlete_id] = result.data;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/save_result");
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify(data));
+  }
 }
 
 class Result {
@@ -72,7 +83,6 @@ class Result {
     this.athlete_id = athlete_id;
     this.data = data;
     this.id = new_id();
-    this.changed_data = {};
 
     this.element = document.createElement("tr");
     this.element.className = "result";
@@ -83,9 +93,8 @@ class Result {
     athleteButton.textContent = athlete_id;
     athleteButton.onclick = () => {
       chooseAthlete((athlete_id) => {
-        console.log(athlete_id);
         athleteButton.textContent = athlete_id;
-        this.changed_data.athlete_id = athlete_id;
+        this.athlete_id = athlete_id;
       });
     };
     athleteCell.appendChild(athleteButton);
@@ -97,7 +106,7 @@ class Result {
     finishTimeInput.id = "finish_time" + this.id;
     finishTimeInput.value = data.finish_time;
     finishTimeInput.onchange = () => {
-      this.changed_data.finish_time = finishTimeInput.value;
+      this.data.finish_time = finishTimeInput.value;
     };
     finishTimeCell.appendChild(finishTimeInput);
     this.element.appendChild(finishTimeCell);
@@ -108,7 +117,7 @@ class Result {
     dnfInput.id = "dnf" + this.id;
     dnfInput.checked = data.DNF;
     dnfInput.onchange = () => {
-      this.changed_data.DNF = dnfInput.checked;
+      this.data.DNF = dnfInput.checked;
     };
     dnfCell.appendChild(dnfInput);
     this.element.appendChild(dnfCell);
@@ -119,7 +128,7 @@ class Result {
     dnsInput.id = "dns" + this.id;
     dnsInput.checked = data.DNS;
     dnsInput.onchange = () => {
-      this.changed_data.DNS = dnsInput.checked;
+      this.data.DNS = dnsInput.checked;
     };
     dnsCell.appendChild(dnsInput);
     this.element.appendChild(dnsCell);
@@ -130,7 +139,7 @@ class Result {
     dqInput.id = "dq" + this.id;
     dqInput.checked = data.DQ;
     dqInput.onchange = () => {
-      this.changed_data.DQ = dqInput.checked;
+      this.data.DQ = dqInput.checked;
     };
     dqCell.appendChild(dqInput);
     this.element.appendChild(dqCell);
@@ -164,7 +173,7 @@ function chooseAthlete(callback) {
   modalSearchbox.id = "athlete_searchbox";
   modalSearchbox.placeholder = "Search for athlete...";
   modalSearchbox.onkeyup = () => {
-    var filter = modalSearchbox.value.toUpperCase();
+    var filter = modalSearchbox.value.toLowerCase();
     var athlete_list = [];
     for (var athlete of athletes) {
       if (athlete.name.toUpperCase().includes(filter)) {
@@ -177,23 +186,12 @@ function chooseAthlete(callback) {
 
   var modalList = document.createElement("div");
   for (var athlete of athlete_list) {
-    var athleteButton = document.createElement("button");
-    athleteButton.dataset.athlete_id = get_athlete_id(athlete);
-    athleteButton.onclick = () => {
-      callback(athleteButton.dataset.athlete_id);
-      modal.remove();
-    };
-
-    var athletePicture = document.createElement("img");
-    athletePicture.src = "/athlete_photo/" + get_athlete_id(athlete);
-    athletePicture.alt = athlete.name + "'s picture";
-    athleteButton.appendChild(athletePicture);
-
-    var athleteName = document.createElement("p");
-    athleteName.textContent = athlete.name;
-    athleteButton.appendChild(athleteName);
-
-    modalList.appendChild(athleteButton);
+    modalList.appendChild(
+      newAthleteForModal(athlete, (athlete_id) => {
+        modal.remove();
+        callback(athlete_id);
+      })
+    );
   }
   modalContent.appendChild(modalList);
   modal.appendChild(modalContent);
@@ -201,4 +199,23 @@ function chooseAthlete(callback) {
 
   // focus modalSearchbox
   modalSearchbox.focus();
+}
+
+function newAthleteForModal(athlete, callback) {
+  var athleteButton = document.createElement("button");
+  athleteButton.className = "athlete_button";
+  athleteButton.onclick = () => {
+    callback(get_athlete_id(athlete));
+  };
+
+  var athletePicture = document.createElement("img");
+  athletePicture.src = "/athlete_photo/" + get_athlete_id(athlete);
+  athletePicture.alt = athlete.name + "'s picture";
+  athleteButton.appendChild(athletePicture);
+
+  var athleteName = document.createElement("p");
+  athleteName.textContent = athlete.name;
+  athleteButton.appendChild(athleteName);
+
+  return athleteButton;
 }

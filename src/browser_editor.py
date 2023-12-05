@@ -51,9 +51,12 @@ def result(filename):
 
 @app.route("/athlete_photo/<string:athlete_id>")
 def athlete_photo(athlete_id):
-    response = flask.make_response(
-        raceml.lookup_athlete_photo(athlete_id, app.config["RACEML_DATABASE"])
-    )
+    try:
+        response = flask.make_response(
+            raceml.lookup_athlete_photo(athlete_id, app.config["RACEML_DATABASE"])
+        )
+    except FileNotFoundError:
+        return "404 Not Found", 404
     response.headers["Content-Type"] = "image/jpeg"
     # set a cache timeout of 1 day
     response.headers["Cache-Control"] = "max-age=86400"
