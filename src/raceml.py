@@ -181,7 +181,7 @@ _athlete_cache = {}
 def _lookup_athlete(
     athlete_id,
     athletes_folder: pathlib.Path,
-    database_lock: DatabaseLock,
+    database_lock: DatabaseLock = None,
     file_type=".yaml",
     binary=False,
 ):
@@ -198,7 +198,8 @@ def _lookup_athlete(
     Raises:
         ValueError: If the athlete is not found or multiple athletes are found with the same ID.
     """
-    database_lock.check()
+    if database_lock:
+        database_lock.check()
 
     athlete_cache_key = (athletes_folder, athlete_id, file_type)
 
@@ -220,13 +221,13 @@ def _lookup_athlete(
 
 
 def lookup_athlete(
-    athlete_id, athletes_folder: pathlib.Path, database_lock: DatabaseLock
+    athlete_id, athletes_folder: pathlib.Path, database_lock: DatabaseLock = None
 ):
     return _lookup_athlete(athlete_id, athletes_folder, database_lock, ".yaml")
 
 
 def lookup_athlete_photo(
-    athlete_id, athlete_photos_folder: pathlib.Path, database_lock: DatabaseLock
+    athlete_id, athlete_photos_folder: pathlib.Path, database_lock: DatabaseLock = None
 ):
     return _lookup_athlete(
         athlete_id, athlete_photos_folder, database_lock, ".jpeg", binary=True

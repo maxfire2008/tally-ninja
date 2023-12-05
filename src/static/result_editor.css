@@ -18,10 +18,21 @@
     width: 80%;
     display: flex;
     flex-direction: column;
-}
-
-.modal > div > button {
-    display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.modal > div > div > button {
+    display: flex;
+    width: 100%;
+}
+
+.modal > div > div >button > p {
+    justify-content: center;
+    align-items: center;
+}
+
+.modal > div > div >button > img {
+    width: 5vmin;
+    height: 5vmin;
 }

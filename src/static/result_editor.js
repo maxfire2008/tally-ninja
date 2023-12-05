@@ -82,7 +82,11 @@ class Result {
     athleteButton.id = "athlete" + this.id;
     athleteButton.textContent = athlete_id;
     athleteButton.onclick = () => {
-      this.athlete_id = chooseAthlete();
+      chooseAthlete((athlete_id) => {
+        console.log(athlete_id);
+        athleteButton.textContent = athlete_id;
+        this.changed_data.athlete_id = athlete_id;
+      });
     };
     athleteCell.appendChild(athleteButton);
     this.element.appendChild(athleteCell);
@@ -136,7 +140,17 @@ class Result {
   }
 }
 
-function chooseAthlete() {
+function get_athlete_id(athlete) {
+  // athlete = { "_filename": "<athlete_id>.yaml" }
+  if (athlete._filename.endsWith(".yaml")) {
+    return athlete._filename.slice(0, -5);
+  }
+  throw (
+    "Invalid athlete filename for athlete_id extraction: " + athlete._filename
+  );
+}
+
+function chooseAthlete(callback) {
   // add a modal to choose an athlete
   var modal = document.createElement("div");
   modal.className = "modal";
@@ -144,16 +158,47 @@ function chooseAthlete() {
   var modalTitle = document.createElement("h2");
   modalTitle.textContent = "Choose Athlete";
   modalContent.appendChild(modalTitle);
+
+  var modalSearchbox = document.createElement("input");
+  modalSearchbox.type = "text";
+  modalSearchbox.id = "athlete_searchbox";
+  modalSearchbox.placeholder = "Search for athlete...";
+  modalSearchbox.onkeyup = () => {
+    var filter = modalSearchbox.value.toUpperCase();
+    var athlete_list = [];
+    for (var athlete of athletes) {
+      if (athlete.name.toUpperCase().includes(filter)) {
+        athlete_list.push(athlete);
+      }
+    }
+    updateModalList(athlete_list);
+  };
+  modalContent.appendChild(modalSearchbox);
+
   var modalList = document.createElement("div");
   for (var athlete of athlete_list) {
     var athleteButton = document.createElement("button");
-    athleteButton.textContent = athlete.name;
+    athleteButton.dataset.athlete_id = get_athlete_id(athlete);
     athleteButton.onclick = () => {
-      alert("athlete clicked");
+      callback(athleteButton.dataset.athlete_id);
+      modal.remove();
     };
+
+    var athletePicture = document.createElement("img");
+    athletePicture.src = "/athlete_photo/" + get_athlete_id(athlete);
+    athletePicture.alt = athlete.name + "'s picture";
+    athleteButton.appendChild(athletePicture);
+
+    var athleteName = document.createElement("p");
+    athleteName.textContent = athlete.name;
+    athleteButton.appendChild(athleteName);
+
     modalList.appendChild(athleteButton);
   }
   modalContent.appendChild(modalList);
   modal.appendChild(modalContent);
   document.body.appendChild(modal);
+
+  // focus modalSearchbox
+  modalSearchbox.focus();
 }
