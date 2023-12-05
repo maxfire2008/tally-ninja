@@ -12,6 +12,53 @@ function new_id() {
   return last_id;
 }
 
+function millisecondsToHhmmss(milliseconds) {
+  if (!Number.isInteger(milliseconds)) {
+    throw new TypeError("milliseconds must be an integer");
+  }
+
+  const secondsTotal = milliseconds / 1000;
+  const hours = Math.floor(secondsTotal / 3600);
+  const minutes = Math.floor((secondsTotal % 3600) / 60);
+  const seconds = Math.floor(secondsTotal % 60);
+  const decimalPart = (secondsTotal % 1).toFixed(3).substring(1);
+
+  let output = "";
+
+  if (hours > 0) {
+    output += hours + ":";
+  }
+  if (minutes > 0) {
+    output += minutes.toString().padStart(2, "0") + ":";
+  }
+  output += seconds.toString().padStart(2, "0");
+  if (decimalPart > 0) {
+    output += decimalPart;
+  }
+
+  return output;
+}
+
+function hhmmssToMilliseconds(hhmmss) {
+  hhmmss = hhmmss.toString();
+
+  if (hhmmss.split(".").length >= 2 && hhmmss.split(".")[1].length > 3) {
+    throw new Error("More than 3 digits after the decimal point in " + hhmmss);
+  }
+
+  const hhmmssSplit = hhmmss.split(":");
+  let seconds = parseFloat(hhmmssSplit[hhmmssSplit.length - 1]);
+
+  if (hhmmssSplit.length > 1) {
+    seconds += parseFloat(hhmmssSplit[hhmmssSplit.length - 2]) * 60;
+  }
+  if (hhmmssSplit.length > 2) {
+    seconds += parseFloat(hhmmssSplit[hhmmssSplit.length - 3]) * 3600;
+  }
+
+  return Math.round(seconds * 1000);
+}
+
 class ResultEditor {
   constructor(data) {
     this.data = data;
@@ -74,6 +121,7 @@ class ResultEditor {
     for (const result of this.results) {
       data.results[result.athlete_id] = result.data;
     }
+    console.log(data);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/save_result");
     xhr.setRequestHeader("Content-Type", "application/json");
@@ -108,9 +156,13 @@ class Result {
     const finishTimeInput = document.createElement("input");
     finishTimeInput.type = "text";
     finishTimeInput.id = "finish_time" + this.id;
-    finishTimeInput.value = data.finish_time;
+    if (data.finish_time === undefined) {
+      finishTimeInput.value = "";
+    } else {
+      finishTimeInput.value = millisecondsToHhmmss(data.finish_time);
+    }
     finishTimeInput.onchange = () => {
-      this.data.finish_time = finishTimeInput.value;
+      this.data.finish_time = hhmmssToMilliseconds(finishTimeInput.value);
     };
     finishTimeCell.appendChild(finishTimeInput);
     this.element.appendChild(finishTimeCell);
