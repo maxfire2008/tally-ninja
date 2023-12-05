@@ -18,9 +18,11 @@
             </tbody>
         </table>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
     <script src="/static/result_editor.js"></script>
     <script>
         var data = {{ data | tojson }};
+        var config = {{ config | tojson }};
         var athlete_list = {{ athlete_list | tojson }};
         var editor = new ResultEditor(data);
     </script>

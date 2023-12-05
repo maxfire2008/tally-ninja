@@ -36,3 +36,12 @@
     width: 5vmin;
     height: 5vmin;
 }
+
+.duplicated {
+    color: white;
+    background-color: red;
+}
+
+.hidden {
+    display: none !important;
+}

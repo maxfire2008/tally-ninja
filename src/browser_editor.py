@@ -12,7 +12,7 @@ app.jinja_env.autoescape = True
 
 def get_athlete_list():
     for athlete in app.config["RACEML_DATABASE"].glob("athletes/**/*.yaml"):
-        yield raceml.load(athlete)
+        yield athlete.stem, raceml.load(athlete)
 
 
 @app.route("/")
@@ -38,11 +38,13 @@ def result(filename):
     data = raceml.load(filepath)
     if data["type"] == "race":
         data["date"] = data["date"].isoformat()
+        print(dict(sorted(get_athlete_list(), key=lambda x: x[1].get("name", repr(x)))))
         return flask.render_template(
             "result_editor.html.j2",
             data=data,
-            athlete_list=sorted(
-                get_athlete_list(), key=lambda x: x.get("name", repr(x))
+            config=raceml.load(app.config["RACEML_DATABASE"] / "config.yaml"),
+            athlete_list=dict(
+                sorted(get_athlete_list(), key=lambda x: x[1].get("name", repr(x)))
             ),
         )
     else:
