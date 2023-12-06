@@ -1,6 +1,7 @@
 import flask
 import sys
 import pathlib
+import datetime
 
 import requests
 import ruamel.yaml
@@ -53,30 +54,55 @@ def result(filename):
         return "Result type not supported", 501
 
 
+def update_dictionary(dictionary, new_data):
+    for key, value in new_data.items():
+        if isinstance(value, dict):
+            update_dictionary(dictionary[key], new_data[key])
+        else:
+            dictionary[key] = new_data[key]
+    for key, value in list(dictionary.items()):
+        if key not in new_data:
+            del dictionary[key]
+
+
 @app.route("/save_result", methods=["POST"])
 def save_result():
     # get JSON data from request
     data = flask.request.json
+    filepath = data["_filepath"]
 
     # open the existing file
     reader = ruamel.yaml.YAML()
     with open(
-        app.config["RACEML_DATABASE"] / "results" / data["filename"],
+        filepath,
         "r",
         encoding="utf-8",
     ) as file:
         doc = reader.load(file)
 
-    # update the file
-    doc = raceml.deep_merge(doc, data["data"])
+    data["date"] = datetime.date.fromisoformat(data["date"])
+
+    for key, value in data["results"].items():
+        print(key, value)
+        if "finish_time" in value and value["finish_time"] is None:
+            del data["results"][key]["finish_time"]
+
+    for hidden_key in ["_filepath", "_filename"]:
+        if hidden_key in data:
+            del data[hidden_key]
+
+    # update the doc to be identical to data
+    update_dictionary(doc, data)
 
     # write the file
     with open(
-        app.config["RACEML_DATABASE"] / "results" / data["filename"],
+        filepath,
         "w",
         encoding="utf-8",
     ) as file:
         reader.dump(doc, file)
+
+    return "OK"
 
 
 @app.route("/athlete_photo/<string:athlete_id>")

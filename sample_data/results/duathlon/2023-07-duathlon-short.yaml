@@ -5,7 +5,7 @@ date: 2023-07-01
 
 results:
   donald_trump:
-    finish_time: 3473430
+    DQ: true
   joe_biden:
     finish_time: 3382120
   kamala_harris:
