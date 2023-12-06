@@ -112,7 +112,9 @@ def athlete_photo(athlete_id):
             raceml.lookup_athlete_photo(athlete_id, app.config["RACEML_DATABASE"])
         )
     except FileNotFoundError:
-        return "404 Not Found", 404
+        response = flask.make_response(
+            "Not Found", 200
+        )  # 200 OK is a bit of a lie, but it allows the browser to cache the response
     response.headers["Content-Type"] = "image/jpeg"
     # set a cache timeout of 1 day
     response.headers["Cache-Control"] = "max-age=86400"

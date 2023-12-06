@@ -225,6 +225,14 @@ function chooseAthlete(callback) {
   const modal = document.createElement("div");
   modal.className = "modal";
   const modalContent = document.createElement("div");
+
+  const cancelButton = document.createElement("button");
+  cancelButton.textContent = "Cancel";
+  cancelButton.onclick = () => {
+    modal.remove();
+  };
+  modalContent.appendChild(cancelButton);
+
   const modalTitle = document.createElement("h2");
   modalTitle.textContent = "Choose Athlete";
   modalContent.appendChild(modalTitle);
@@ -272,16 +280,28 @@ function chooseAthlete(callback) {
 
   modalSearchbox.onkeyup = () => {
     const filter = modalSearchbox.value.toLowerCase();
-    const fuseResults = fuse.search(filter);
-    const searchResults = [];
-    for (const result of fuseResults) {
-      searchResults.push(result.item.athlete_id);
-    }
-    for (const item of searchList) {
-      if (searchResults.includes(item.athlete_id) || filter === "") {
-        item.button.classList.remove("hidden");
-      } else {
-        item.button.classList.add("hidden");
+
+    modalList.innerHTML = "";
+    if (filter === "") {
+      for (const athlete_id in athlete_list) {
+        const athleteButton = newAthleteForModal(athlete_id, (athlete_id) => {
+          modal.remove();
+          callback(athlete_id);
+        });
+        modalList.appendChild(athleteButton);
+      }
+    } else {
+      const fuseResults = fuse.search(filter);
+      const searchResults = [];
+      for (const result of fuseResults) {
+        const athleteButton = newAthleteForModal(
+          result.item.athlete_id,
+          (athlete_id) => {
+            modal.remove();
+            callback(athlete_id);
+          }
+        );
+        modalList.appendChild(athleteButton);
       }
     }
   };
@@ -305,12 +325,16 @@ function newAthleteForModal(athlete_id, callback) {
   // if the colour is too dark, make the text white
   const colour = athleteButton.style.backgroundColor;
   const rgb = colour.match(/\d+/g);
-  const brightness = Math.round(
-    (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) /
-      1000
-  );
-  if (brightness < 125) {
-    athleteButton.style.color = "white";
+  if (rgb !== null) {
+    const brightness = Math.round(
+      (parseInt(rgb[0]) * 299 +
+        parseInt(rgb[1]) * 587 +
+        parseInt(rgb[2]) * 114) /
+        1000
+    );
+    if (brightness < 125) {
+      athleteButton.style.color = "white";
+    }
   }
 
   const athletePicture = document.createElement("img");
