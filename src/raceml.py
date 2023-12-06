@@ -60,7 +60,7 @@ _file_cache = {}
 
 
 def load(
-    filepath: pathlib.Path or io.TextIOWrapper,
+    filepath: pathlib.Path,
     allow_template_only=False,
     cache=False,
     file_stream=None,

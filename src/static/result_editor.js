@@ -113,6 +113,11 @@ class ResultEditor {
     for (const athlete_id in data.results) {
       this.results.push(new Result(athlete_id, data.results[athlete_id]));
     }
+
+    const save = document.getElementById("save");
+    save.onclick = () => {
+      this.save();
+    };
   }
 
   save() {
