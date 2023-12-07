@@ -36,6 +36,25 @@ def index():
     )
 
 
+@app.route("/new_result", methods=["POST"])
+def new_result():
+    filename = flask.request.form.get("filename", None)
+    if filename is None:
+        return "No filename specified", 400
+    result_type = flask.request.form.get("result_type", None)
+    if result_type is None:
+        return "No result result type specified", 400
+    filepath = app.config["RACEML_DATABASE"] / "results" / (filename + ".yaml")
+    if filepath.exists():
+        return "File already exists", 400
+
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+
+    raceml.dump(filepath, {"type": result_type})
+
+    return flask.redirect(flask.url_for("result", filename=filename + ".yaml"))
+
+
 @app.route("/result/<path:filename>")
 def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
