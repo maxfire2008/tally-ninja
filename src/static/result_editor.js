@@ -99,7 +99,7 @@ class ResultEditor {
     dateLabel.htmlFor = "date";
     dateLabel.textContent = "Date";
     const dateInput = document.createElement("input");
-    dateInput.type = "date";
+    dateInput.type = "datetime-local";
     dateInput.id = "date";
     dateInput.value = data.date;
     dateInput.onchange = () => {
@@ -110,7 +110,19 @@ class ResultEditor {
     header.appendChild(dateDiv);
 
     this.results = [];
-    for (const athlete_id in data.results) {
+    // sort data.results by finish_time
+    const athlete_ids = Object.keys(data.results);
+    athlete_ids.sort((a, b) => {
+      if (data.results[a].finish_time === undefined) {
+        return 1;
+      }
+      if (data.results[b].finish_time === undefined) {
+        return -1;
+      }
+      return data.results[a].finish_time - data.results[b].finish_time;
+    });
+
+    for (const athlete_id of athlete_ids) {
       this.results.push(new Result(athlete_id, data.results[athlete_id]));
     }
 

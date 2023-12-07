@@ -2,6 +2,7 @@ import flask
 import sys
 import pathlib
 import datetime
+import pytz
 
 import requests
 import ruamel.yaml
@@ -41,7 +42,6 @@ def result(filename):
     data = raceml.load(filepath)
     if data["type"] == "race":
         data["date"] = data["date"].isoformat()
-        print(dict(sorted(get_athlete_list(), key=lambda x: x[1].get("name", repr(x)))))
         return flask.render_template(
             "result_editor.html.j2",
             data=data,
@@ -80,10 +80,9 @@ def save_result():
     ) as file:
         doc = reader.load(file)
 
-    data["date"] = datetime.date.fromisoformat(data["date"])
+    data["date"] = datetime.datetime.fromisoformat(data["date"])
 
     for key, value in data["results"].items():
-        print(key, value)
         if "finish_time" in value and value["finish_time"] is None:
             del data["results"][key]["finish_time"]
 
