@@ -75,6 +75,8 @@ class ResultEditor {
   constructor(data) {
     this.modal = null;
 
+    this.mainValue = "finish_time";
+
     this.data = data;
     const header = document.getElementById("header");
 
@@ -132,20 +134,22 @@ class ResultEditor {
     header.appendChild(dateDiv);
 
     this.results = [];
-    // sort data.results by finish_time
+    // sort data.results by this.sorting_key
     const athlete_ids = Object.keys(data.results);
     athlete_ids.sort((a, b) => {
-      if (data.results[a].finish_time === undefined) {
+      if (data.results[a][this.mainValue] === undefined) {
         return 1;
       }
-      if (data.results[b].finish_time === undefined) {
+      if (data.results[b][this.mainValue] === undefined) {
         return -1;
       }
-      return data.results[a].finish_time - data.results[b].finish_time;
+      return data.results[a][this.mainValue] - data.results[b][this.mainValue];
     });
 
     for (const athlete_id of athlete_ids) {
-      this.results.push(new Result(athlete_id, data.results[athlete_id]));
+      this.results.push(
+        new Result(athlete_id, data.results[athlete_id], this.mainValue)
+      );
     }
 
     const new_result = document.getElementById("new_result");
@@ -188,10 +192,10 @@ class ResultEditor {
   new_result() {
     this.modal = chooseAthlete((athlete_id) => {
       this.modal = null;
-      this.results.push(new Result(athlete_id, {}));
-      // set focus to the new result's finish_time input
-      const finishTimeInput =
-        this.results[this.results.length - 1].finishTimeInput.focus();
+      this.results.push(new Result(athlete_id, {}, this.mainValue));
+      // set focus to the new result's this.sorting_key input
+      const mainValueInput =
+        this.results[this.results.length - 1].mainValueInput.focus();
       updateWarnings();
     });
   }
@@ -218,7 +222,8 @@ class ResultEditor {
 }
 
 class Result {
-  constructor(athlete_id, data) {
+  constructor(athlete_id, data, mainValue) {
+    this.mainValue = mainValue;
     this.athlete_id = athlete_id;
     this.data = data;
     this.id = new_id();
@@ -241,20 +246,22 @@ class Result {
     athleteCell.appendChild(this.athleteButton);
     this.element.appendChild(athleteCell);
 
-    const finishTimeCell = document.createElement("td");
-    this.finishTimeInput = document.createElement("input");
-    this.finishTimeInput.type = "text";
-    this.finishTimeInput.id = "finish_time" + this.id;
-    if (data.finish_time === undefined) {
-      this.finishTimeInput.value = "";
+    const mainValueCell = document.createElement("td");
+    this.mainValueInput = document.createElement("input");
+    this.mainValueInput.type = "text";
+    this.mainValueInput.id = this.mainValue + this.id;
+    if (data[this.mainValue] === undefined) {
+      this.mainValueInput.value = "";
     } else {
-      this.finishTimeInput.value = millisecondsToHhmmss(data.finish_time);
+      this.mainValueInput.value = millisecondsToHhmmss(data[this.mainValue]);
     }
-    this.finishTimeInput.onchange = () => {
-      this.data.finish_time = hhmmssToMilliseconds(this.finishTimeInput.value);
+    this.mainValueInput.onchange = () => {
+      this.data[this.mainValue] = hhmmssToMilliseconds(
+        this.mainValueInput.value
+      );
     };
-    finishTimeCell.appendChild(this.finishTimeInput);
-    this.element.appendChild(finishTimeCell);
+    mainValueCell.appendChild(this.mainValueInput);
+    this.element.appendChild(mainValueCell);
 
     const dnfCell = document.createElement("td");
     const dnfInput = document.createElement("input");

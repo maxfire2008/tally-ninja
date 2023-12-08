@@ -23,8 +23,19 @@
         <!-- dropdown menu of result types, i.e., race, places, etc. -->
         <select name="result_type">
             <option value="race">Race</option>
+            <option value="discus_throw">Discus Throw</option>
+            <option value="long_jump">Long Jump</option>
+            <option value="triple_jump">Triple Jump</option>
+            <option value="shot_put">Shot Put</option>
+            <option value="javelin_throw">Javelin Throw</option>
+            <option value="bonus_points">Bonus Points</option>
             <option value="places">Places</option>
         </select>
+        <!-- competitor_type is individual or team radio buttons -->
+        <input type="radio" name="competitor_type" value="individual">
+        <label for="individual">Individual</label>
+        <input type="radio" name="competitor_type" value="team">
+        <label for="team">Team</label>
         <input type="submit" value="Create">
     </form>
 {% endblock %}
