@@ -126,6 +126,14 @@ class ResultEditor {
       this.results.push(new Result(athlete_id, data.results[athlete_id]));
     }
 
+    const new_result = document.getElementById("new_result");
+    new_result.onclick = () => {
+      chooseAthlete((athlete_id) => {
+        this.results.push(new Result(athlete_id, {}));
+        updateWarnings();
+      });
+    };
+
     const save = document.getElementById("save");
     save.onclick = () => {
       this.save();
@@ -143,6 +151,11 @@ class ResultEditor {
     xhr.open("POST", "/save_result");
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.send(JSON.stringify(data));
+    xhr.onloadend = () => {
+      if (xhr.status !== 200) {
+        alert("Error saving result: " + xhr.status + " " + xhr.statusText);
+      }
+    };
   }
 }
 

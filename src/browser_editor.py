@@ -76,6 +76,8 @@ def result(filename):
 def update_dictionary(dictionary, new_data):
     for key, value in new_data.items():
         if isinstance(value, dict):
+            if key not in dictionary:
+                dictionary[key] = {}
             update_dictionary(dictionary[key], new_data[key])
         else:
             dictionary[key] = new_data[key]
