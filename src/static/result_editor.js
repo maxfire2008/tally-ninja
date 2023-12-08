@@ -75,10 +75,21 @@ class ResultEditor {
   constructor(data) {
     this.modal = null;
 
-    this.mainValue = "finish_time";
-
     this.data = data;
     const header = document.getElementById("header");
+
+    if (data.type === "race") {
+      this.mainValue = "finish_time";
+      document.getElementById("mainValueKey").textContent = "Finish Time";
+    } else if (data.type === "bonus_points") {
+      this.mainValue = "points";
+      document.getElementById("mainValueKey").textContent = "Points";
+    } else {
+      document.getElementById("save").remove();
+      // add a warning that this is an invalid result type
+      header.textContent = "Warning: Invalid result type: " + data.type;
+      alert("Invalid result type: " + data.type);
+    }
 
     const nameDiv = document.createElement("div");
     const nameLabel = document.createElement("label");
@@ -253,12 +264,20 @@ class Result {
     if (data[this.mainValue] === undefined) {
       this.mainValueInput.value = "";
     } else {
-      this.mainValueInput.value = millisecondsToHhmmss(data[this.mainValue]);
+      if (data.type === "race") {
+        this.mainValueInput.value = millisecondsToHhmmss(data[this.mainValue]);
+      } else {
+        this.mainValueInput.value = data[this.mainValue];
+      }
     }
     this.mainValueInput.onchange = () => {
-      this.data[this.mainValue] = hhmmssToMilliseconds(
-        this.mainValueInput.value
-      );
+      if (data.type === "race") {
+        this.data[this.mainValue] = hhmmssToMilliseconds(
+          this.mainValueInput.value
+        );
+      } else {
+        this.data[this.mainValue] = this.mainValueInput.value;
+      }
     };
     mainValueCell.appendChild(this.mainValueInput);
     this.element.appendChild(mainValueCell);

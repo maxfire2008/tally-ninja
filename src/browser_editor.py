@@ -65,7 +65,7 @@ def new_result():
 def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
     data = raceml.load(filepath)
-    if data["type"] in ["race"]:
+    if data["type"] in ["race", "bonus_points"]:
         if "date" in data:
             data["date"] = data["date"].isoformat()
         else:
