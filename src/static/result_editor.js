@@ -5,6 +5,18 @@
 /  const result_editor = new ResultEditor(data);
 */
 
+localStorage.openpages = Date.now();
+var onLocalStorageEvent = function (e) {
+  if (e.key == "openpages") {
+    // Listen if anybody else is opening the same page!
+    localStorage.page_available = Date.now();
+  }
+  if (e.key == "page_available") {
+    alert("Another Tally Ninja tab is open! Proceed with caution!");
+  }
+};
+window.addEventListener("storage", onLocalStorageEvent, false);
+
 let last_id = 0;
 
 function new_id() {
@@ -73,7 +85,11 @@ class ResultEditor {
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.id = "name";
-    nameInput.value = data.name;
+    if (data.name === undefined) {
+      nameInput.value = "";
+    } else {
+      nameInput.value = data.name;
+    }
     nameInput.onchange = () => {
       this.data.name = nameInput.value;
     };
@@ -88,7 +104,11 @@ class ResultEditor {
     const distanceInput = document.createElement("input");
     distanceInput.type = "text";
     distanceInput.id = "distance";
-    distanceInput.value = data.distance;
+    if (data.distance === undefined) {
+      distanceInput.value = "";
+    } else {
+      distanceInput.value = data.distance;
+    }
     distanceInput.onchange = () => {
       this.data.distance = distanceInput.value;
     };
@@ -159,6 +179,8 @@ class ResultEditor {
           this.modal.remove();
           this.modal = null;
         }
+      } else if (e.key === "Enter" && this.modal !== null) {
+        this.modal.selectFirst();
       }
     };
   }
@@ -167,6 +189,9 @@ class ResultEditor {
     this.modal = chooseAthlete((athlete_id) => {
       this.modal = null;
       this.results.push(new Result(athlete_id, {}));
+      // set focus to the new result's finish_time input
+      const finishTimeInput =
+        this.results[this.results.length - 1].finishTimeInput.focus();
       updateWarnings();
     });
   }
@@ -175,7 +200,9 @@ class ResultEditor {
     const data = this.data;
     data.results = {};
     for (const result of this.results) {
-      data.results[result.athlete_id] = result.data;
+      if (!result.deleted) {
+        data.results[result.athlete_id] = result.data;
+      }
     }
     console.log(data);
     const xhr = new XMLHttpRequest();
@@ -215,18 +242,18 @@ class Result {
     this.element.appendChild(athleteCell);
 
     const finishTimeCell = document.createElement("td");
-    const finishTimeInput = document.createElement("input");
-    finishTimeInput.type = "text";
-    finishTimeInput.id = "finish_time" + this.id;
+    this.finishTimeInput = document.createElement("input");
+    this.finishTimeInput.type = "text";
+    this.finishTimeInput.id = "finish_time" + this.id;
     if (data.finish_time === undefined) {
-      finishTimeInput.value = "";
+      this.finishTimeInput.value = "";
     } else {
-      finishTimeInput.value = millisecondsToHhmmss(data.finish_time);
+      this.finishTimeInput.value = millisecondsToHhmmss(data.finish_time);
     }
-    finishTimeInput.onchange = () => {
-      this.data.finish_time = hhmmssToMilliseconds(finishTimeInput.value);
+    this.finishTimeInput.onchange = () => {
+      this.data.finish_time = hhmmssToMilliseconds(this.finishTimeInput.value);
     };
-    finishTimeCell.appendChild(finishTimeInput);
+    finishTimeCell.appendChild(this.finishTimeInput);
     this.element.appendChild(finishTimeCell);
 
     const dnfCell = document.createElement("td");
@@ -261,6 +288,16 @@ class Result {
     };
     dqCell.appendChild(dqInput);
     this.element.appendChild(dqCell);
+
+    const deleteButtonCell = document.createElement("td");
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.onclick = () => {
+      this.deleted = true;
+      this.element.remove();
+    };
+    deleteButtonCell.appendChild(deleteButton);
+    this.element.appendChild(deleteButtonCell);
 
     const athletes = document.getElementById("athletes");
     athletes.appendChild(this.element);
@@ -370,7 +407,17 @@ function chooseAthlete(callback) {
   // focus modalSearchbox
   modalSearchbox.focus();
 
-  return modal;
+  return {
+    remove: () => {
+      modal.remove();
+    },
+    selectFirst: () => {
+      // like clicking the first button in the list / only allow this if the searchbox has something in it
+      if (modalSearchbox.value !== "") {
+        modalList.firstChild.click();
+      }
+    },
+  };
 }
 
 function newAthleteForModal(athlete_id, callback) {

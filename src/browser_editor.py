@@ -50,7 +50,13 @@ def new_result():
 
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    raceml.dump(filepath, {"type": result_type})
+    raceml.dump(
+        filepath,
+        {
+            "type": result_type,
+            "results": {},
+        },
+    )
 
     return flask.redirect(flask.url_for("result", filename=filename + ".yaml"))
 
@@ -60,7 +66,10 @@ def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
     data = raceml.load(filepath)
     if data["type"] == "race":
-        data["date"] = data["date"].isoformat()
+        if "date" in data:
+            data["date"] = data["date"].isoformat()
+        else:
+            data["date"] = None
         return flask.render_template(
             "result_editor.html.j2",
             data=data,
@@ -100,8 +109,8 @@ def save_result():
         encoding="utf-8",
     ) as file:
         doc = reader.load(file)
-
-    data["date"] = datetime.datetime.fromisoformat(data["date"])
+    if data.get("date") is not None:
+        data["date"] = datetime.datetime.fromisoformat(data["date"])
 
     for key, value in data["results"].items():
         if "finish_time" in value and value["finish_time"] is None:
