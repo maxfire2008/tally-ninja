@@ -61,6 +61,8 @@ function hhmmssToMilliseconds(hhmmss) {
 
 class ResultEditor {
   constructor(data) {
+    this.modal = null;
+
     this.data = data;
     const header = document.getElementById("header");
 
@@ -128,16 +130,45 @@ class ResultEditor {
 
     const new_result = document.getElementById("new_result");
     new_result.onclick = () => {
-      chooseAthlete((athlete_id) => {
-        this.results.push(new Result(athlete_id, {}));
-        updateWarnings();
-      });
+      this.new_result();
     };
 
     const save = document.getElementById("save");
     save.onclick = () => {
       this.save();
     };
+
+    // keyboard shortcuts (ctrl+s to save, ctrl+enter to add new result)
+    // for mac, use metaKey instead of ctrlKey because Apple is weird
+
+    if (navigator.userAgent.includes("Macintosh")) {
+      this.specialKey = "metaKey";
+    } else {
+      this.specialKey = "ctrlKey";
+    }
+
+    document.onkeydown = (e) => {
+      if (e[this.specialKey] && e.key === "s") {
+        e.preventDefault();
+        this.save();
+      } else if (e[this.specialKey] && e.key === "Enter") {
+        e.preventDefault();
+        this.new_result();
+      } else if (e.key === "Escape") {
+        if (this.modal !== null) {
+          this.modal.remove();
+          this.modal = null;
+        }
+      }
+    };
+  }
+
+  new_result() {
+    this.modal = chooseAthlete((athlete_id) => {
+      this.modal = null;
+      this.results.push(new Result(athlete_id, {}));
+      updateWarnings();
+    });
   }
 
   save() {
@@ -173,7 +204,8 @@ class Result {
     this.athleteButton.id = "athlete" + this.id;
     this.athleteButton.textContent = athlete_list[athlete_id].name;
     this.athleteButton.onclick = () => {
-      chooseAthlete((athlete_id) => {
+      this.modal = chooseAthlete((athlete_id) => {
+        this.modal = null;
         this.athleteButton.textContent = athlete_list[athlete_id].name;
         this.athlete_id = athlete_id;
         updateWarnings();
@@ -337,6 +369,8 @@ function chooseAthlete(callback) {
 
   // focus modalSearchbox
   modalSearchbox.focus();
+
+  return modal;
 }
 
 function newAthleteForModal(athlete_id, callback) {
