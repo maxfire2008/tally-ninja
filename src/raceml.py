@@ -175,52 +175,7 @@ class DatabaseLock:
         return False
 
 
-_team_cache = {}
-
-
-def lookup_team(
-    team_id,
-    teams_folder: pathlib.Path,
-    database_lock: DatabaseLock = None,
-    file_type=".yaml",
-    binary=False,
-):
-    """
-    Looks up an team's data by their ID.
-
-    Args:
-        team_id (str): The ID of the team to look up.
-        teams_folder (pathlib.Path): The folder containing the YAML files for all teams.
-
-    Returns:
-        dict: A dictionary containing the team's data.
-
-    Raises:
-        ValueError: If the team is not found or multiple teams are found with the same ID.
-    """
-    if database_lock:
-        database_lock.check()
-
-    team_cache_key = (teams_folder, team_id, file_type)
-
-    if team_cache_key in _team_cache:
-        return _team_cache[team_cache_key]
-    teams_filenames = list(teams_folder.glob("**/" + team_id + file_type))
-    if len(teams_filenames) < 1:
-        raise FileNotFoundError("Team not found: " + team_id)
-    if len(teams_filenames) > 1:
-        raise ValueError("Multiple teams found: " + team_id)
-    team_filename = teams_filenames[0]
-    if binary:
-        with open(team_filename, "rb") as file:
-            team_data = file.read()
-    else:
-        team_data = load(team_filename)
-    _team_cache[team_cache_key] = team_data
-    return team_data
-
-
-_team_cache = {}
+_athlete_cache = {}
 
 
 def _lookup_athlete(
@@ -248,8 +203,8 @@ def _lookup_athlete(
 
     athlete_cache_key = (athletes_folder, athlete_id, file_type)
 
-    if athlete_cache_key in _team_cache:
-        return _team_cache[athlete_cache_key]
+    if athlete_cache_key in _athlete_cache:
+        return _athlete_cache[athlete_cache_key]
     athlete_filenames = list(athletes_folder.glob("**/" + athlete_id + file_type))
     if len(athlete_filenames) < 1:
         raise FileNotFoundError("Athlete not found: " + athlete_id)
@@ -261,7 +216,7 @@ def _lookup_athlete(
             athlete_data = file.read()
     else:
         athlete_data = load(athlete_filename)
-    _team_cache[athlete_cache_key] = athlete_data
+    _athlete_cache[athlete_cache_key] = athlete_data
     return athlete_data
 
 
