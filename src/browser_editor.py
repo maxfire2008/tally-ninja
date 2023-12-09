@@ -4,6 +4,8 @@ import pathlib
 import datetime
 import pytz
 
+import os
+import waitress
 import requests
 import ruamel.yaml
 import ruamel.yaml.error
@@ -155,4 +157,9 @@ if __name__ == "__main__":
         app.config["RACEML_DATABASE"] = pathlib.Path(sys.argv[1])
     else:
         quit("Usage: python3 browser_editor.py <path-to-raceml-database>")
-    app.run(debug=True)
+
+    if sys.argv[-1] == "dev":
+        app.run(debug=True, port=5000)
+    else:
+        # serve with waitress with as many threads as there are CPUs, logs of level INFO
+        waitress.serve(app, port=5000, threads=os.cpu_count())

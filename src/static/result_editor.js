@@ -453,7 +453,7 @@ function newAthleteForModal(athlete_id, callback) {
     callback(athlete_id);
   };
   athleteButton.style.backgroundColor =
-    config.team_colours[athlete_list[athlete_id].team];
+    config.teams[athlete_list[athlete_id].team].colour;
   // if the colour is too dark, make the text white
   const colour = athleteButton.style.backgroundColor;
   const rgb = colour.match(/\d+/g);

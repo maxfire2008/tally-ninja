@@ -1,5 +1,9 @@
-team_colours:
-  red: '#ff0000'
-  blue: '#0000ff'
-  green: '#00ff00'
-  yellow: '#ffff00'
+teams:
+  red:
+    colour: '#ff0000'
+  blue:
+    colour: '#0000ff'
+  green:
+    colour: '#00ff00'
+  yellow:
+    colour: '#ffff00'
