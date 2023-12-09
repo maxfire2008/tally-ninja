@@ -19,6 +19,11 @@ def get_athlete_list():
         yield athlete.stem, raceml.load(athlete)
 
 
+def get_team_data():
+    for team in app.config["RACEML_DATABASE"].glob("teams/**/*.yaml"):
+        yield team.stem, raceml.load(team)
+
+
 @app.route("/")
 def index():
     filepath = app.config["RACEML_DATABASE"] / "results"
@@ -73,7 +78,6 @@ def result(filename):
         return flask.render_template(
             "result_editor.html.j2",
             data=data,
-            config=raceml.load(app.config["RACEML_DATABASE"] / "config.yaml"),
             athlete_list=dict(
                 sorted(get_athlete_list(), key=lambda x: x[1].get("name", repr(x)))
             ),
