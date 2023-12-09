@@ -646,7 +646,7 @@ def tally_data(
                         "Error getting eligible leagues for athlete: "
                         + athlete_id
                         + " in results: "
-                        + results["name"]
+                        + results.get("name", "<None>")
                     ) from e
 
                 for chosen_league in eligible_leagues:
