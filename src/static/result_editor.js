@@ -83,14 +83,14 @@ class ResultEditor {
       data.competitor_type === undefined
     ) {
       this.competitor_type = "individual";
-      tableHeaderCell = document.createElement("th");
+      const tableHeaderCell = document.createElement("th");
       tableHeaderCell.textContent = "Athlete";
-      tableHeaderRow.appendChild(tableHeaderCell);
+      document.getElementById("tableHeaderRow").appendChild(tableHeaderCell);
     } else if (data.competitor_type === "team") {
       this.competitor_type = "team";
-      tableHeaderCell = document.createElement("th");
+      const tableHeaderCell = document.createElement("th");
       tableHeaderCell.textContent = "Team";
-      tableHeaderRow.appendChild(tableHeaderCell);
+      document.getElementById("tableHeaderRow").appendChild(tableHeaderCell);
     } else {
       document.getElementById("save").remove();
       document.body.textContent =
@@ -100,14 +100,14 @@ class ResultEditor {
 
     if (data.type === "race") {
       this.mainValue = "finish_time";
-      tableHeaderCell = document.createElement("th");
+      const tableHeaderCell = document.createElement("th");
       tableHeaderCell.textContent = "Finish Time";
-      tableHeaderRow.appendChild(tableHeaderCell);
+      document.getElementById("tableHeaderRow").appendChild(tableHeaderCell);
     } else if (data.type === "bonus_points") {
       this.mainValue = "points";
-      tableHeaderCell = document.createElement("th");
+      const tableHeaderCell = document.createElement("th");
       tableHeaderCell.textContent = "Points";
-      tableHeaderRow.appendChild(tableHeaderCell);
+      document.getElementById("tableHeaderRow").appendChild(tableHeaderCell);
     } else {
       document.getElementById("save").remove();
       document.body.textContent = "Invalid result type: " + data.type;
@@ -420,6 +420,7 @@ function chooseAthlete(callback) {
         athlete_id,
         (athlete_id) => {
           modal.remove();
+          localStorage.setItem("latest_athlete_id", athlete_id);
           callback(athlete_id);
         },
         "individual"
