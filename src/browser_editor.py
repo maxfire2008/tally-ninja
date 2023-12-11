@@ -68,7 +68,7 @@ def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
     data = raceml.load(filepath)
     if data["type"] in ["race", "bonus_points"]:
-        if "date" in data:
+        if "date" in data and data["date"] is not None:
             data["date"] = data["date"].isoformat()
         else:
             data["date"] = None
@@ -113,6 +113,9 @@ def save_result():
         doc = reader.load(file)
     if data.get("date") is not None:
         data["date"] = datetime.datetime.fromisoformat(data["date"])
+
+    if "data" in data and data["data"] is None:
+        del data["data"]
 
     for key, value in data["results"].items():
         if "finish_time" in value and value["finish_time"] is None:
