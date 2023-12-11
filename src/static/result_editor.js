@@ -78,17 +78,40 @@ class ResultEditor {
     this.data = data;
     const header = document.getElementById("header");
 
-    if (data.type === "race") {
-      this.mainValue = "finish_time";
-      document.getElementById("mainValueKey").textContent = "Finish Time";
-    } else if (data.type === "bonus_points") {
-      this.mainValue = "points";
-      document.getElementById("mainValueKey").textContent = "Points";
+    if (
+      data.competitor_type === "individual" ||
+      data.competitor_type === undefined
+    ) {
+      this.competitor_type = "individual";
+      tableHeaderCell = document.createElement("th");
+      tableHeaderCell.textContent = "Athlete";
+      tableHeaderRow.appendChild(tableHeaderCell);
+    } else if (data.competitor_type === "team") {
+      this.competitor_type = "team";
+      tableHeaderCell = document.createElement("th");
+      tableHeaderCell.textContent = "Team";
+      tableHeaderRow.appendChild(tableHeaderCell);
     } else {
       document.getElementById("save").remove();
-      // add a warning that this is an invalid result type
-      header.textContent = "Warning: Invalid result type: " + data.type;
-      alert("Invalid result type: " + data.type);
+      document.body.textContent =
+        "Invalid competitor type: " + data.competitor_type;
+      throw new Error("Invalid competitor type: " + data.competitor_type);
+    }
+
+    if (data.type === "race") {
+      this.mainValue = "finish_time";
+      tableHeaderCell = document.createElement("th");
+      tableHeaderCell.textContent = "Finish Time";
+      tableHeaderRow.appendChild(tableHeaderCell);
+    } else if (data.type === "bonus_points") {
+      this.mainValue = "points";
+      tableHeaderCell = document.createElement("th");
+      tableHeaderCell.textContent = "Points";
+      tableHeaderRow.appendChild(tableHeaderCell);
+    } else {
+      document.getElementById("save").remove();
+      document.body.textContent = "Invalid result type: " + data.type;
+      throw new Error("Invalid result type: " + data.type);
     }
 
     const nameDiv = document.createElement("div");
@@ -245,11 +268,19 @@ class Result {
     const athleteCell = document.createElement("td");
     this.athleteButton = document.createElement("button");
     this.athleteButton.id = "athlete" + this.id;
-    this.athleteButton.textContent = athlete_list[athlete_id].name;
+    if (editor.competitor_type === "individual") {
+      this.athleteButton.textContent = athlete_list[athlete_id].name;
+    } else if (editor.competitor_type === "team") {
+      this.athleteButton.textContent = config.teams[athlete_id].name;
+    }
     this.athleteButton.onclick = () => {
       this.modal = chooseAthlete((athlete_id) => {
         this.modal = null;
-        this.athleteButton.textContent = athlete_list[athlete_id].name;
+        if (editor.competitor_type === "individual") {
+          this.athleteButton.textContent = athlete_list[athlete_id].name;
+        } else if (editor.competitor_type === "team") {
+          this.athleteButton.textContent = config.teams[athlete_id].name;
+        }
         this.athlete_id = athlete_id;
         updateWarnings();
       });
@@ -281,6 +312,23 @@ class Result {
     };
     mainValueCell.appendChild(this.mainValueInput);
     this.element.appendChild(mainValueCell);
+
+    if (editor.data.type === "bonus_points") {
+      const reasonCell = document.createElement("td");
+      const reasonInput = document.createElement("input");
+      reasonInput.type = "text";
+      reasonInput.id = "reason" + this.id;
+      if (data.reason === undefined) {
+        reasonInput.value = "";
+      } else {
+        reasonInput.value = data.reason;
+      }
+      reasonInput.onchange = () => {
+        this.data.reason = reasonInput.value;
+      };
+      reasonCell.appendChild(reasonInput);
+      this.element.appendChild(reasonCell);
+    }
 
     const dnfCell = document.createElement("td");
     const dnfInput = document.createElement("input");
@@ -366,17 +414,40 @@ function chooseAthlete(callback) {
   const searchList = [];
 
   const modalList = document.createElement("div");
-  for (const athlete_id in athlete_list) {
-    const athleteButton = newAthleteForModal(athlete_id, (athlete_id) => {
-      modal.remove();
-      callback(athlete_id);
-    });
-    modalList.appendChild(athleteButton);
-    searchList.push({
-      athlete_id: athlete_id,
-      name: athlete_list[athlete_id].name,
-      button: athleteButton,
-    });
+  if (editor.competitor_type === "individual") {
+    for (const athlete_id in athlete_list) {
+      const athleteButton = newAthleteForModal(
+        athlete_id,
+        (athlete_id) => {
+          modal.remove();
+          callback(athlete_id);
+        },
+        "individual"
+      );
+      modalList.appendChild(athleteButton);
+      searchList.push({
+        athlete_id: athlete_id,
+        name: athlete_list[athlete_id].name,
+        button: athleteButton,
+      });
+    }
+  } else if (editor.competitor_type === "team") {
+    for (const team_id in config.teams) {
+      const teamButton = newAthleteForModal(
+        team_id,
+        (team_id) => {
+          modal.remove();
+          callback(team_id);
+        },
+        "team"
+      );
+      modalList.appendChild(teamButton);
+      searchList.push({
+        athlete_id: team_id,
+        name: config.teams[team_id].name,
+        button: teamButton,
+      });
+    }
   }
 
   const fuseOptions = {
@@ -446,14 +517,18 @@ function chooseAthlete(callback) {
   };
 }
 
-function newAthleteForModal(athlete_id, callback) {
+function newAthleteForModal(athlete_id, callback, competitor_type) {
   const athleteButton = document.createElement("button");
   athleteButton.className = "athlete_button";
   athleteButton.onclick = () => {
     callback(athlete_id);
   };
-  athleteButton.style.backgroundColor =
-    config.teams[athlete_list[athlete_id].team].colour;
+  if (competitor_type === "individual") {
+    athleteButton.style.backgroundColor =
+      config.teams[athlete_list[athlete_id].team].colour;
+  } else if (competitor_type === "team") {
+    athleteButton.style.backgroundColor = config.teams[athlete_id].colour;
+  }
   // if the colour is too dark, make the text white
   const colour = athleteButton.style.backgroundColor;
   const rgb = colour.match(/\d+/g);
@@ -470,12 +545,25 @@ function newAthleteForModal(athlete_id, callback) {
   }
 
   const athletePicture = document.createElement("img");
-  athletePicture.src = "/athlete_photo/" + athlete_id;
-  athletePicture.alt = athlete_list[athlete_id].name + "'s picture";
+  if (competitor_type === "individual") {
+    athletePicture.src = "/athlete_photo/" + athlete_id;
+  } else if (competitor_type === "team") {
+    athletePicture.src = "/team_photo/" + athlete_id;
+  }
+  if (competitor_type === "individual") {
+    athletePicture.alt = athlete_list[athlete_id].name + "'s picture";
+  } else if (competitor_type === "team") {
+    athletePicture.alt = config.teams[athlete_id].name + "'s picture";
+  }
+
   athleteButton.appendChild(athletePicture);
 
   const athleteName = document.createElement("p");
-  athleteName.textContent = athlete_list[athlete_id].name;
+  if (competitor_type === "individual") {
+    athleteName.textContent = athlete_list[athlete_id].name;
+  } else if (competitor_type === "team") {
+    athleteName.textContent = config.teams[athlete_id].name;
+  }
   athleteButton.appendChild(athleteName);
 
   return athleteButton;

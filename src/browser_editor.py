@@ -46,6 +46,9 @@ def new_result():
     result_type = flask.request.form.get("result_type", None)
     if result_type is None:
         return "No result result type specified", 400
+    competitor_type = flask.request.form.get("competitor_type", None)
+    if competitor_type is None:
+        return "No competitor type specified", 400
     filepath = app.config["RACEML_DATABASE"] / "results" / (filename + ".yaml")
     if filepath.exists():
         return "File already exists", 400
@@ -56,6 +59,7 @@ def new_result():
         filepath,
         {
             "type": result_type,
+            "competitor_type": competitor_type,
             "results": {},
         },
     )
@@ -67,7 +71,7 @@ def new_result():
 def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
     data = raceml.load(filepath)
-    if data["type"] in ["race", "bonus_points"]:
+    if data["type"] in ["race", "bonus_points", "high_jump"]:
         if "date" in data and data["date"] is not None:
             data["date"] = data["date"].isoformat()
         else:
