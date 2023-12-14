@@ -88,6 +88,17 @@ def result(filename):
         return "Result type not supported", 501
 
 
+@app.route("/selection_preview")
+def selection_preview():
+    return flask.render_template(
+        "selection_preview.html.j2",
+        config=raceml.load(app.config["RACEML_DATABASE"] / "config.yaml"),
+        athlete_list=dict(
+            sorted(get_athlete_list(), key=lambda x: x[1].get("name", repr(x)))
+        ),
+    )
+
+
 def update_dictionary(dictionary, new_data):
     for key, value in new_data.items():
         if isinstance(value, dict):

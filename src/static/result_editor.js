@@ -182,7 +182,13 @@ class ResultEditor {
 
     for (const athlete_id of athlete_ids) {
       this.results.push(
-        new Result(athlete_id, data.results[athlete_id], this.mainValue)
+        new Result(
+          athlete_id,
+          data.results[athlete_id],
+          this.mainValue,
+          this.competitor_type,
+          this.data.type
+        )
       );
     }
 
@@ -226,7 +232,15 @@ class ResultEditor {
   new_result() {
     this.modal = chooseAthlete((athlete_id) => {
       this.modal = null;
-      this.results.push(new Result(athlete_id, {}, this.mainValue));
+      this.results.push(
+        new Result(
+          athlete_id,
+          {},
+          this.mainValue,
+          this.competitor_type,
+          this.data.type
+        )
+      );
       // set focus to the new result's this.sorting_key input
       const mainValueInput =
         this.results[this.results.length - 1].mainValueInput.focus();
@@ -256,11 +270,14 @@ class ResultEditor {
 }
 
 class Result {
-  constructor(athlete_id, data, mainValue) {
+  constructor(athlete_id, data, mainValue, competitor_type, race_type) {
     this.mainValue = mainValue;
     this.athlete_id = athlete_id;
     this.data = data;
     this.id = new_id();
+
+    this.competitor_type = competitor_type;
+    this.race_type = race_type;
 
     this.element = document.createElement("tr");
     this.element.className = "result";
@@ -268,17 +285,17 @@ class Result {
     const athleteCell = document.createElement("td");
     this.athleteButton = document.createElement("button");
     this.athleteButton.id = "athlete" + this.id;
-    if (editor.competitor_type === "individual") {
+    if (this.competitor_type === "individual") {
       this.athleteButton.textContent = athlete_list[athlete_id].name;
-    } else if (editor.competitor_type === "team") {
+    } else if (this.competitor_type === "team") {
       this.athleteButton.textContent = config.teams[athlete_id].name;
     }
     this.athleteButton.onclick = () => {
       this.modal = chooseAthlete((athlete_id) => {
         this.modal = null;
-        if (editor.competitor_type === "individual") {
+        if (this.competitor_type === "individual") {
           this.athleteButton.textContent = athlete_list[athlete_id].name;
-        } else if (editor.competitor_type === "team") {
+        } else if (this.competitor_type === "team") {
           this.athleteButton.textContent = config.teams[athlete_id].name;
         }
         this.athlete_id = athlete_id;
@@ -313,7 +330,7 @@ class Result {
     mainValueCell.appendChild(this.mainValueInput);
     this.element.appendChild(mainValueCell);
 
-    if (editor.data.type === "bonus_points") {
+    if (this.race_type === "bonus_points") {
       const reasonCell = document.createElement("td");
       const reasonInput = document.createElement("input");
       reasonInput.type = "text";
@@ -509,7 +526,6 @@ function chooseAthlete(callback) {
 
       if (editor.competitor_type === "individual") {
         for (const result of fuseResults) {
-          console.log(result);
           const athleteButton = newAthleteForModal(
             result.item.athlete_id,
             (athlete_id) => {
@@ -564,7 +580,6 @@ function newAthleteForModal(athlete_id, callback, competitor_type) {
     callback(athlete_id);
   };
   if (competitor_type === "individual") {
-    console.log(athlete_list, athlete_id);
     athleteButton.style.backgroundColor = athlete_list[athlete_id].team.colour;
   } else if (competitor_type === "team") {
     athleteButton.style.backgroundColor = config.teams[athlete_id].colour;
