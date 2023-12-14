@@ -476,24 +476,63 @@ function chooseAthlete(callback) {
     modalList.innerHTML = "";
     if (filter === "") {
       for (const athlete_id in athlete_list) {
-        const athleteButton = newAthleteForModal(athlete_id, (athlete_id) => {
-          modal.remove();
-          callback(athlete_id);
-        });
-        modalList.appendChild(athleteButton);
+        if (editor.competitor_type === "individual") {
+          for (const athlete_id in athlete_list) {
+            const athleteButton = newAthleteForModal(
+              athlete_id,
+              (athlete_id) => {
+                modal.remove();
+                localStorage.setItem("latest_athlete_id", athlete_id);
+                callback(athlete_id);
+              },
+              "individual"
+            );
+            modalList.appendChild(athleteButton);
+          }
+        } else if (editor.competitor_type === "team") {
+          for (const team_id in config.teams) {
+            const teamButton = newAthleteForModal(
+              team_id,
+              (team_id) => {
+                modal.remove();
+                callback(team_id);
+              },
+              "team"
+            );
+            modalList.appendChild(teamButton);
+          }
+        }
       }
     } else {
       const fuseResults = fuse.search(filter);
       const searchResults = [];
-      for (const result of fuseResults) {
-        const athleteButton = newAthleteForModal(
-          result.item.athlete_id,
-          (athlete_id) => {
-            modal.remove();
-            callback(athlete_id);
-          }
-        );
-        modalList.appendChild(athleteButton);
+
+      if (editor.competitor_type === "individual") {
+        for (const result of fuseResults) {
+          console.log(result);
+          const athleteButton = newAthleteForModal(
+            result.item.athlete_id,
+            (athlete_id) => {
+              modal.remove();
+              localStorage.setItem("latest_athlete_id", athlete_id);
+              callback(athlete_id);
+            },
+            "individual"
+          );
+          modalList.appendChild(athleteButton);
+        }
+      } else if (editor.competitor_type === "team") {
+        for (const result of fuseResults) {
+          const teamButton = newAthleteForModal(
+            result.item.athlete_id,
+            (team_id) => {
+              modal.remove();
+              callback(team_id);
+            },
+            "team"
+          );
+          modalList.appendChild(teamButton);
+        }
       }
     }
   };
@@ -525,8 +564,8 @@ function newAthleteForModal(athlete_id, callback, competitor_type) {
     callback(athlete_id);
   };
   if (competitor_type === "individual") {
-    athleteButton.style.backgroundColor =
-      config.teams[athlete_list[athlete_id].team].colour;
+    console.log(athlete_list, athlete_id);
+    athleteButton.style.backgroundColor = athlete_list[athlete_id].team.colour;
   } else if (competitor_type === "team") {
     athleteButton.style.backgroundColor = config.teams[athlete_id].colour;
   }
