@@ -390,7 +390,10 @@ def calculate_points(
                 unique_scores = [
                     c[scoring_settings["sort_key"]]
                     if not (
-                        c.get("DNF", False) or c.get("DNS", False) or c.get("DQ", False)
+                        c.get("DNF", False)
+                        or c.get("DNS", False)
+                        or c.get("DQ", False)
+                        or scoring_settings["sort_key"] not in c
                     )
                     else (
                         float("inf")
@@ -405,6 +408,7 @@ def calculate_points(
                         athlete_result.get("DNF", False)
                         or athlete_result.get("DNS", False)
                         or athlete_result.get("DQ", False)
+                        or scoring_settings["sort_key"] not in athlete_result
                     )
                     else (
                         float("inf")
