@@ -46,6 +46,9 @@ def new_result():
     result_type = flask.request.form.get("result_type", None)
     if result_type is None:
         return "No result result type specified", 400
+    competitor_type = flask.request.form.get("competitor_type", None)
+    if competitor_type is None:
+        return "No competitor type specified", 400
     filepath = app.config["RACEML_DATABASE"] / "results" / (filename + ".yaml")
     if filepath.exists():
         return "File already exists", 400
@@ -56,6 +59,7 @@ def new_result():
         filepath,
         {
             "type": result_type,
+            "competitor_type": competitor_type,
             "results": {},
         },
     )
@@ -67,8 +71,8 @@ def new_result():
 def result(filename):
     filepath = app.config["RACEML_DATABASE"] / "results" / filename
     data = raceml.load(filepath)
-    if data["type"] in ["race", "bonus_points"]:
-        if "date" in data:
+    if data["type"] in ["race", "bonus_points", "high_jump"]:
+        if "date" in data and data["date"] is not None:
             data["date"] = data["date"].isoformat()
         else:
             data["date"] = None
@@ -82,6 +86,17 @@ def result(filename):
         )
     else:
         return "Result type not supported", 501
+
+
+@app.route("/selection_preview")
+def selection_preview():
+    return flask.render_template(
+        "selection_preview.html.j2",
+        config=raceml.load(app.config["RACEML_DATABASE"] / "config.yaml"),
+        athlete_list=dict(
+            sorted(get_athlete_list(), key=lambda x: x[1].get("name", repr(x)))
+        ),
+    )
 
 
 def update_dictionary(dictionary, new_data):
@@ -113,6 +128,9 @@ def save_result():
         doc = reader.load(file)
     if data.get("date") is not None:
         data["date"] = datetime.datetime.fromisoformat(data["date"])
+
+    if "data" in data and data["data"] is None:
+        del data["data"]
 
     for key, value in data["results"].items():
         if "finish_time" in value and value["finish_time"] is None:
