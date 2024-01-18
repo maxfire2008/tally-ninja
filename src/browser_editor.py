@@ -26,15 +26,18 @@ def index():
     filepath = app.config["RACEML_DATABASE"] / "results"
     return flask.render_template(
         "index.html.j2",
-        files=[
-            {
-                "name": str(path.relative_to(filepath)),
-                "link": flask.url_for(
-                    "result", filename=str(path.relative_to(filepath))
-                ),
-            }
-            for path in filepath.glob("**/*.yaml")
-        ],
+        files=sorted(
+            [
+                {
+                    "name": str(path.relative_to(filepath)),
+                    "link": flask.url_for(
+                        "result", filename=str(path.relative_to(filepath))
+                    ),
+                }
+                for path in filepath.glob("**/*.yaml")
+            ],
+            key=lambda x: x["name"],
+        ),
     )
 
 
