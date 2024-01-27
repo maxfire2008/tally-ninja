@@ -501,7 +501,7 @@ def calculate_points(
                 - (place * scoring_settings.get("method_decrement", 1)),
                 0,
             )
-    elif scoring_settings["method"] == "bonus_points":
+    elif scoring_settings["method"] == "points":
         # results:
         #   - id: Red
         #     awards:

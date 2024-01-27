@@ -32,12 +32,12 @@ scoring:
     method_decrement: 1
     sort_by: 'high_jump'
 
-  most_points:
+  relay:
     method: 'minus_place'
-    method_value: 100
+    method_value: 40
     method_decrement: 10
     sort_by: 'highest'
     sort_key: 'points'
   bonus_points:
-    method: 'bonus_points'
+    method: 'points'
   
