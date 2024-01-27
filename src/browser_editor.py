@@ -180,7 +180,7 @@ if __name__ == "__main__":
         quit("Usage: python3 browser_editor.py <path-to-raceml-database>")
 
     if sys.argv[-1] == "dev":
-        app.run(debug=True, port=5000)
+        app.run(debug=True, port=5000, threaded=True)
     else:
         # serve with waitress with as many threads as there are CPUs, logs of level INFO
         waitress.serve(app, port=5000, threads=os.cpu_count())

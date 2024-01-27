@@ -312,14 +312,14 @@ class Result {
     if (data[this.mainValue] === undefined) {
       this.mainValueInput.value = "";
     } else {
-      if (data.type === "race") {
+      if (this.race_type === "race") {
         this.mainValueInput.value = millisecondsToHhmmss(data[this.mainValue]);
       } else {
         this.mainValueInput.value = data[this.mainValue];
       }
     }
     this.mainValueInput.onchange = () => {
-      if (data.type === "race") {
+      if (this.race_type === "race") {
         this.data[this.mainValue] = hhmmssToMilliseconds(
           this.mainValueInput.value
         );
