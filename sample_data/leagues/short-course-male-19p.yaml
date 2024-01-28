@@ -1,5 +1,0 @@
-_include: _short-course-19p.yaml
-
-name: Duathlon League Male (19+)
-eligibility:
-  - athlete_gender=="male"

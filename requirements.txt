@@ -1,4 +1,0 @@
-wxPython
-ruamel.yaml
-pyyaml
-waitress
