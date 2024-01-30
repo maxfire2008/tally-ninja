@@ -24,7 +24,7 @@ def get_config():
 
 @app.route("/")
 def index():
-    filepath = app.config["RACEML_DATABASE"] / "results"
+    filepath = app.config["RACEML_DATABASE"] / "competitions"
     return flask.render_template(
         "index.html.j2",
         files=sorted(
@@ -32,7 +32,7 @@ def index():
                 {
                     "name": str(path.relative_to(filepath)),
                     "link": flask.url_for(
-                        "result", filename=str(path.relative_to(filepath))
+                        "competition", filename=str(path.relative_to(filepath))
                     ),
                 }
                 for path in filepath.glob("**/*.yaml")
@@ -42,18 +42,18 @@ def index():
     )
 
 
-@app.route("/new_result", methods=["POST"])
-def new_result():
+@app.route("/new_competition", methods=["POST"])
+def new_competition():
     filename = flask.request.form.get("filename", None)
     if filename is None:
         return "No filename specified", 400
-    result_type = flask.request.form.get("result_type", None)
-    if result_type is None:
-        return "No result result type specified", 400
+    competition_type = flask.request.form.get("competition_type", None)
+    if competition_type is None:
+        return "No competition type specified", 400
     competitor_type = flask.request.form.get("competitor_type", None)
     if competitor_type is None:
         return "No competitor type specified", 400
-    filepath = app.config["RACEML_DATABASE"] / "results" / (filename + ".yaml")
+    filepath = app.config["RACEML_DATABASE"] / "competitions" / (filename + ".yaml")
     if filepath.exists():
         return "File already exists", 400
 
@@ -63,19 +63,19 @@ def new_result():
         file.write(
             yaml.dump(
                 {
-                    "type": result_type,
+                    "type": competition_type,
                     "competitor_type": competitor_type,
                     "results": {},
                 },
             )
         )
 
-    return flask.redirect(flask.url_for("result", filename=filename + ".yaml"))
+    return flask.redirect(flask.url_for("competition", filename=filename + ".yaml"))
 
 
-@app.route("/result/<path:filename>")
-def result(filename):
-    filepath = app.config["RACEML_DATABASE"] / "results" / filename
+@app.route("/competition/<path:filename>")
+def competition(filename):
+    filepath = app.config["RACEML_DATABASE"] / "competitions" / filename
     data = yaml.safe_load(filepath.read_text(encoding="utf-8"))
     if data["type"] in ["race", "bonus_points", "high_jump"]:
         if "date" in data and data["date"] is not None:
@@ -83,12 +83,12 @@ def result(filename):
         else:
             data["date"] = None
         return flask.render_template(
-            "result_editor.html.j2",
+            "competition_editor.html.j2",
             data=data,
             config=get_config(),
         )
     else:
-        return "Result type not supported", 501
+        return "Competition type not supported", 501
 
 
 @app.route("/selection_preview")
@@ -112,8 +112,8 @@ def update_dictionary(dictionary, new_data):
             del dictionary[key]
 
 
-@app.route("/save_result", methods=["POST"])
-def save_result():
+@app.route("/save_competition", methods=["POST"])
+def save_competition():
     # get JSON data from request
     data = flask.request.json
     filepath = data["_filepath"]
@@ -132,9 +132,9 @@ def save_result():
     if "data" in data and data["data"] is None:
         del data["data"]
 
-    for key, value in data["results"].items():
+    for key, value in data["competitions"].items():
         if "finish_time" in value and value["finish_time"] is None:
-            del data["results"][key]["finish_time"]
+            del data["competitions"][key]["finish_time"]
 
     for hidden_key in ["_filepath", "_filename"]:
         if hidden_key in data:

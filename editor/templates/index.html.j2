@@ -9,7 +9,7 @@
     <small>© Max Burgess 2023
         <br>
     All rights reserved</small>
-    <h2>Results</h2>
+    <h2>Competitions</h2>
     <ul>
         {% for file in files %}
             <li>
@@ -17,11 +17,11 @@
             </li>
         {% endfor %}
     </ul>
-    <h2>New Result</h2>
-    <form action="/new_result" method="post" enctype="multipart/form-data">
+    <h2>New Competition</h2>
+    <form action="/new_competition" method="post" enctype="multipart/form-data">
         <input type="text" name="filename" placeholder="Filename">
-        <!-- dropdown menu of result types, i.e., race, places, etc. -->
-        <select name="result_type">
+        <!-- dropdown menu of competition types, i.e., race, places, etc. -->
+        <select name="competition_type">
             <option value="race">Race</option>
             <option value="discus_throw">Discus Throw</option>
             <option value="long_jump">Long Jump</option>

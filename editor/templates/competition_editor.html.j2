@@ -1,0 +1,22 @@
+{% extends "base.html.j2" %}
+{% block head %}<link rel="stylesheet" href="/static/competition_editor.css">{% endblock %}
+{% block content %}
+    <div id="header"></div>
+    <div>
+        <table>
+            <thead>
+                <tr id="tableHeaderRow"></tr>
+            </thead>
+            <tbody id="athletes">
+            </tbody>
+        </table>
+    </div>
+    <button id="new_result">New Result</button>
+    <button id="save">Save</button>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <script src="/static/competition_editor.js"></script>
+    <script>
+        var config = {{ config | tojson }};
+        var editor = new CompetitionEditor({{ data | tojson }});
+    </script>
+{% endblock %}

@@ -70,3 +70,12 @@ function hhmmssToMilliseconds(hhmmss) {
 
   return Math.round(seconds * 1000);
 }
+
+class CompetitionEditor {
+  constructor(data) {
+    this.data = data;
+    for (const key in data.results) {
+      data.results[key].id = new_id();
+    }
+  }
+}
