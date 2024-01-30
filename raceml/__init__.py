@@ -1,0 +1,1 @@
+from .Athlete import Competition
