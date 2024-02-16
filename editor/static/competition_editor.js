@@ -24,6 +24,11 @@ function new_id() {
   return last_id;
 }
 
+function resolve(path, obj = self, separator = ".") {
+  var properties = Array.isArray(path) ? path : path.split(separator);
+  return properties.reduce((prev, curr) => prev?.[curr], obj);
+}
+
 function millisecondsToHhmmss(milliseconds) {
   if (!Number.isInteger(milliseconds)) {
     throw new TypeError("milliseconds must be an integer");
@@ -74,8 +79,48 @@ function hhmmssToMilliseconds(hhmmss) {
 class CompetitionEditor {
   constructor(data) {
     this.data = data;
+    this.results = [];
+    this.columns = [];
     for (const key in data.results) {
-      data.results[key].id = new_id();
+      const r = new Result(key, data.results[key]);
+      this.results.push(r);
+      document.getElementById("tableBody").appendChild(r.DOMObject);
+      for (const column in data.results[key]) {
+        if (!this.columns.includes(column)) {
+          this.columns.push({
+            name: column,
+            field: column,
+            type: typeof data.results[key][column],
+          });
+        }
+      }
     }
+    for (const result of this.results) {
+      for (const column of this.columns) {
+        result.appendColumn(column);
+      }
+    }
+  }
+}
+
+class Result {
+  constructor(athlete_id, data) {
+    this.athlete_id = athlete_id;
+    this.data = data;
+    this.DOMObject = document.createElement("tr");
+  }
+  appendColumn(column) {
+    this.DOMObject.appendChild(
+      new Cell(resolve(column.field, this.data), column.type).DOMObject
+    );
+  }
+}
+
+class Cell {
+  constructor(value, type) {
+    this.value = value;
+    this.type = type;
+    this.DOMObject = document.createElement("td");
+    this.DOMObject.innerHTML = value;
   }
 }
