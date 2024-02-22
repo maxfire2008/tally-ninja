@@ -1,0 +1,11 @@
+competitor_type: individual
+type: high_jump
+
+results:
+  steve_smith:
+    heights:
+      1000: [False, True]
+      1500: [True]
+      2000: [False, False, True]
+      2500: [False, False, True]
+      3000: [False, False, False]

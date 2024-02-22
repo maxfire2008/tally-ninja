@@ -80,25 +80,41 @@ class CompetitionEditor {
   constructor(data) {
     this.data = data;
     this.results = [];
-    this.columns = [];
     for (const key in data.results) {
       const r = new Result(key, data.results[key]);
       this.results.push(r);
       document.getElementById("tableBody").appendChild(r.DOMObject);
-      for (const column in data.results[key]) {
-        if (!this.columns.includes(column)) {
-          this.columns.push({
-            name: column,
-            field: column,
-            type: typeof data.results[key][column],
-          });
+    }
+    if (this.data.type === "race") {
+      this.appendColumn({
+        name: "Finish Time",
+        field: "finish_time",
+        type: "duration",
+      });
+    } else if (this.data.type === "high_jump") {
+      let hj_columns = [];
+      for (const key in data.results) {
+        for (const height in data.results[key]["heights"]) {
+          if (!hj_columns.includes(height)) {
+            hj_columns.push(height);
+          }
         }
       }
-    }
-    for (const result of this.results) {
-      for (const column of this.columns) {
-        result.appendColumn(column);
+      hj_columns.sort();
+      for (const column in hj_columns) {
+        // Error is here?
+        this.appendColumn({
+          name: column,
+          field: ["heights", column],
+          type: "high_jump_attempts",
+        });
       }
+    }
+  }
+  appendColumn(column) {
+    for (const result of this.results) {
+      console.log(column);
+      result.appendColumn(column);
     }
   }
 }
@@ -110,6 +126,7 @@ class Result {
     this.DOMObject = document.createElement("tr");
   }
   appendColumn(column) {
+    console.log(resolve(column.field, this.data), column.field, this.data);
     this.DOMObject.appendChild(
       new Cell(resolve(column.field, this.data), column.type).DOMObject
     );

@@ -4,6 +4,3 @@ type: race
 results:
   steve_smith:
     finish_time: 11042
-    flags:
-      hello: 5
-      world: 10
