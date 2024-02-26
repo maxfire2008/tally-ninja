@@ -38,6 +38,14 @@ function resolve(path, obj = self, separator = ".") {
         return prev[curr];
       }, obj);
     },
+    delete: function () {
+      properties.reduce((prev, curr, i, arr) => {
+        if (i === arr.length - 1) {
+          delete prev[curr];
+        }
+        return prev[curr];
+      }, obj);
+    },
   };
 }
 
@@ -88,6 +96,12 @@ function hhmmssToMilliseconds(hhmmss) {
   return Math.round(seconds * 1000);
 }
 
+function addInstruction(instruction) {
+  const instructionLi = document.createElement("li");
+  instructionLi.innerHTML = instruction;
+  document.getElementById("instructions").appendChild(instructionLi);
+}
+
 class CompetitionEditor {
   constructor(data) {
     this.data = data;
@@ -98,7 +112,7 @@ class CompetitionEditor {
       document.getElementById("tableBody").appendChild(r.DOMObject);
     }
 
-    this.appendColumn({ name: "Name", field: "name", type: "name_display" });
+    // this.appendColumn({ name: "Name", field: "name", type: "name_display" });
 
     if (this.data.type === "race") {
       this.appendColumn({
@@ -107,6 +121,19 @@ class CompetitionEditor {
         type: "duration",
       });
     } else if (this.data.type === "high_jump") {
+      addInstruction(
+        "Enter 'f' for failed attempts and 's' for successful attempts. " +
+          "For example, 'ffs' would indicate two failed attempts then one successful attempt."
+      );
+
+      addInstruction(
+        "If an athlete did not attempt a jump, leave the field blank."
+      );
+
+      addInstruction(
+        "Only enter 3 attempts. If an athlete only attempted i.e., 2 jumps, only enter 2 characters."
+      );
+
       let hj_columns = [];
       for (const key in data.results) {
         for (const height in data.results[key]["heights"]) {
@@ -167,13 +194,30 @@ class HighJumpAttemptsField {
   constructor(value) {
     this.value = value;
     this.DOMObject = document.createElement("td");
+    // convert false, false, true to ffs (failed, failed, success)
+    const raw_value = this.value.get();
+    if (raw_value !== undefined) {
+      this.appendInputBox(raw_value);
+    } else {
+      this.appendCreateInputButton();
+    }
+  }
+
+  appendCreateInputButton() {
+    const createInputButton = document.createElement("button");
+    createInputButton.innerHTML = "Create Input";
+    createInputButton.onclick = (e) => {
+      this.value.set([]);
+      this.appendInputBox(this.value.get());
+      e.target.remove();
+    };
+    this.DOMObject.appendChild(createInputButton);
+  }
+
+  appendInputBox(raw_value) {
     const inputBox = document.createElement("input");
     inputBox.type = "text";
-    // convert false, false, true to ffs (failed, failed, success)
-    inputBox.value = this.value
-      .get()
-      .map((v) => (v ? "s" : "f"))
-      .join("");
+    inputBox.value = raw_value.map((v) => (v ? "s" : "f")).join("");
     inputBox.onchange = (e) => {
       // validate the input is only f and s and a maximum of 3 characters
       if (
@@ -184,13 +228,32 @@ class HighJumpAttemptsField {
         (e.target.value.length <= 3 ||
           confirm(
             "The current field contains more than 3 characters. Continue anyway?"
+          )) &&
+        ((e.target.value.match(/s/g) || []).length <= 1 ||
+          confirm(
+            "The current field contains more than 1 successful attempt. Continue anyway?"
+          )) &&
+        (e.target.value[e.target.value.length - 1] === "s" ||
+          !e.target.value.includes("s") ||
+          confirm(
+            "The current field contains an unsuccessful attempt as the last. Continue anyway?"
           ))
       ) {
         this.value.set(
           e.target.value.split("").map((v) => (v === "s" ? true : false))
         );
+      } else {
+        e.target.value = raw_value.map((v) => (v ? "s" : "f")).join("");
       }
     };
     this.DOMObject.appendChild(inputBox);
+    const removeValueButton = document.createElement("button");
+    removeValueButton.innerHTML = "Remove";
+    removeValueButton.onclick = (e) => {
+      this.value.delete();
+      this.DOMObject.innerHTML = "";
+      this.appendCreateInputButton();
+    };
+    this.DOMObject.appendChild(removeValueButton);
   }
 }

@@ -9,3 +9,9 @@ results:
       2000: [False, False, True]
       2500: [False, False, True]
       3000: [False, False, False]
+  
+  john_jones:
+    heights:
+      1000: [False, True]
+      2500: [False, False, True]
+      3000: [False, False, False]
