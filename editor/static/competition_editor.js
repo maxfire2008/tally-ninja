@@ -26,7 +26,19 @@ function new_id() {
 
 function resolve(path, obj = self, separator = ".") {
   var properties = Array.isArray(path) ? path : path.split(separator);
-  return properties.reduce((prev, curr) => prev?.[curr], obj);
+  return {
+    get: function () {
+      return properties.reduce((prev, curr) => prev && prev[curr], obj);
+    },
+    set: function (value) {
+      properties.reduce((prev, curr, i, arr) => {
+        if (i === arr.length - 1) {
+          prev[curr] = value;
+        }
+        return prev[curr];
+      }, obj);
+    },
+  };
 }
 
 function millisecondsToHhmmss(milliseconds) {
@@ -108,7 +120,7 @@ class CompetitionEditor {
         this.appendColumn({
           name: column + " mm",
           field: ["heights", column],
-          type: "high_jump_attempts",
+          type: "HighJumpAttemptsField",
         });
       }
     }
@@ -143,53 +155,42 @@ class Result {
     this.DOMObject = document.createElement("tr");
   }
   appendColumn(column) {
-    if (column.type === "name_display") {
+    if (column.type === "HighJumpAttemptsField") {
       this.DOMObject.appendChild(
-        this.DOMObject.appendChild(
-          new Cell(this.athlete_id, "text_display").DOMObject
-        )
-      );
-    } else if (column.type === "remove_button") {
-      this.DOMObject.appendChild(
-        new Cell(column.value, "remove_button").DOMObject
-      );
-    } else {
-      console.log(resolve(column.field, this.data), column.field, this.data);
-      this.DOMObject.appendChild(
-        new Cell(resolve(column.field, this.data), column.type).DOMObject
+        new HighJumpAttemptsField(resolve(column.field, this.data)).DOMObject
       );
     }
   }
 }
 
-class Cell {
-  constructor(value, type) {
+class HighJumpAttemptsField {
+  constructor(value) {
     this.value = value;
-    this.type = type;
     this.DOMObject = document.createElement("td");
-    if (this.type === "text_display") {
-      this.DOMObject.innerHTML = this.value;
-    } else if (this.type === "high_jump_attempts") {
-      const inputBox = document.createElement("input");
-      inputBox.type = "text";
-      // convert false, false, true to ffs (failed, failed, success)
-      inputBox.value = this.value.map((v) => (v ? "s" : "f")).join("");
-      inputBox.onchange = (e) => {
-        this.value = e.target.value
-          .split("")
-          .map((v) => (v === "s" ? true : false));
-      };
-      this.DOMObject.appendChild(inputBox);
-    } else if (this.type === "remove_button") {
-      const button = document.createElement("button");
-      button.innerHTML = "Remove";
-      button.onclick = () => {
-        this.value();
-        this.DOMObject.parentElement.remove();
-      };
-      this.DOMObject.appendChild(button);
-    } else {
-      this.DOMObject.innerHTML = JSON.stringify(this.value);
-    }
+    const inputBox = document.createElement("input");
+    inputBox.type = "text";
+    // convert false, false, true to ffs (failed, failed, success)
+    inputBox.value = this.value
+      .get()
+      .map((v) => (v ? "s" : "f"))
+      .join("");
+    inputBox.onchange = (e) => {
+      // validate the input is only f and s and a maximum of 3 characters
+      if (
+        (/^[fs]+$/.test(e.target.value) ||
+          confirm(
+            "The current field contains incorrect characters. Any characters other than 'f' and 's' will be treated as 'f'. Continue anyway?"
+          )) &&
+        (e.target.value.length <= 3 ||
+          confirm(
+            "The current field contains more than 3 characters. Continue anyway?"
+          ))
+      ) {
+        this.value.set(
+          e.target.value.split("").map((v) => (v === "s" ? true : false))
+        );
+      }
+    };
+    this.DOMObject.appendChild(inputBox);
   }
 }
