@@ -85,6 +85,9 @@ class CompetitionEditor {
       this.results.push(r);
       document.getElementById("tableBody").appendChild(r.DOMObject);
     }
+
+    this.appendColumn({ name: "Name", field: "name", type: "name_display" });
+
     if (this.data.type === "race") {
       this.appendColumn({
         name: "Finish Time",
@@ -101,17 +104,31 @@ class CompetitionEditor {
         }
       }
       hj_columns.sort();
-      for (const column in hj_columns) {
-        // Error is here?
+      for (const column of hj_columns) {
         this.appendColumn({
-          name: column,
+          name: column + " mm",
           field: ["heights", column],
           type: "high_jump_attempts",
         });
       }
     }
+
+    for (const result of this.results) {
+      result.appendColumn({
+        name: "Remove",
+        type: "remove_button",
+        value: () => {
+          delete this.data.results[result.athlete_id];
+        },
+      });
+    }
   }
   appendColumn(column) {
+    const tableHeaderRow = document.getElementById("tableHeaderRow");
+    const th = document.createElement("th");
+    th.innerHTML = column.name;
+    tableHeaderRow.appendChild(th);
+
     for (const result of this.results) {
       console.log(column);
       result.appendColumn(column);
@@ -126,10 +143,22 @@ class Result {
     this.DOMObject = document.createElement("tr");
   }
   appendColumn(column) {
-    console.log(resolve(column.field, this.data), column.field, this.data);
-    this.DOMObject.appendChild(
-      new Cell(resolve(column.field, this.data), column.type).DOMObject
-    );
+    if (column.type === "name_display") {
+      this.DOMObject.appendChild(
+        this.DOMObject.appendChild(
+          new Cell(this.athlete_id, "text_display").DOMObject
+        )
+      );
+    } else if (column.type === "remove_button") {
+      this.DOMObject.appendChild(
+        new Cell(column.value, "remove_button").DOMObject
+      );
+    } else {
+      console.log(resolve(column.field, this.data), column.field, this.data);
+      this.DOMObject.appendChild(
+        new Cell(resolve(column.field, this.data), column.type).DOMObject
+      );
+    }
   }
 }
 
@@ -138,6 +167,29 @@ class Cell {
     this.value = value;
     this.type = type;
     this.DOMObject = document.createElement("td");
-    this.DOMObject.innerHTML = value;
+    if (this.type === "text_display") {
+      this.DOMObject.innerHTML = this.value;
+    } else if (this.type === "high_jump_attempts") {
+      const inputBox = document.createElement("input");
+      inputBox.type = "text";
+      // convert false, false, true to ffs (failed, failed, success)
+      inputBox.value = this.value.map((v) => (v ? "s" : "f")).join("");
+      inputBox.onchange = (e) => {
+        this.value = e.target.value
+          .split("")
+          .map((v) => (v === "s" ? true : false));
+      };
+      this.DOMObject.appendChild(inputBox);
+    } else if (this.type === "remove_button") {
+      const button = document.createElement("button");
+      button.innerHTML = "Remove";
+      button.onclick = () => {
+        this.value();
+        this.DOMObject.parentElement.remove();
+      };
+      this.DOMObject.appendChild(button);
+    } else {
+      this.DOMObject.innerHTML = JSON.stringify(this.value);
+    }
   }
 }
