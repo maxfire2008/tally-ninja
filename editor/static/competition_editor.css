@@ -45,3 +45,35 @@
 .hidden {
     display: none !important;
 }
+
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #000;
+        color: white;
+    }
+    input {
+        background-color: #222;
+        color: white;
+    }
+    button {
+        background-color: #444;
+        color: white;
+    }
+    .modal {
+        background-color: rgba(0,0,0,0.5);
+    }
+    .modal > div {
+        background-color: #333;
+        border: 1px solid #888;
+    }
+    .modal > div > div > button {
+        background-color: #444;
+    }
+    .modal > div > div > button > p {
+        color: white;
+    }
+    .modal > div > div > button > img {
+        filter: invert(1);
+    }
+}

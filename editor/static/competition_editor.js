@@ -173,6 +173,9 @@ class CompetitionEditor {
       result.appendColumn(column);
     }
   }
+  getData() {
+    return this.data;
+  }
 }
 
 class Result {
