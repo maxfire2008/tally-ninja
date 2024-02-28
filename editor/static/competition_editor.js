@@ -103,7 +103,7 @@ function addInstruction(instruction) {
 }
 
 class CompetitionEditor {
-  constructor(data) {
+  constructor(data, file_path) {
     this.data = data;
     this.results = [];
     for (const key in data.results) {
@@ -112,7 +112,11 @@ class CompetitionEditor {
       document.getElementById("tableBody").appendChild(r.DOMObject);
     }
 
-    // this.appendColumn({ name: "Name", field: "name", type: "name_display" });
+    this.appendColumn({
+      name: "Athlete",
+      field: null,
+      type: "athlete_select",
+    });
 
     if (this.data.type === "race") {
       this.appendColumn({
@@ -150,6 +154,27 @@ class CompetitionEditor {
           type: "HighJumpAttemptsField",
         });
       }
+
+      const addHeightButton = document.createElement("button");
+      addHeightButton.innerHTML = "Add Height";
+      addHeightButton.onclick = (e) => {
+        const height = prompt("Enter the height in mm");
+        if (height !== null) {
+          // add an empty list to each athlete's heights
+          for (const result of this.results) {
+            result.data.heights[height] = [];
+          }
+          this.appendColumn({
+            name: height + " mm",
+            field: ["heights", height],
+            type: "HighJumpAttemptsField",
+          });
+        }
+        // ensure the Add Height button is always the last column
+        e.target.remove();
+        document.getElementById("tableHeaderRow").appendChild(addHeightButton);
+      };
+      document.getElementById("tableHeaderRow").appendChild(addHeightButton);
     }
 
     for (const result of this.results) {
@@ -161,6 +186,10 @@ class CompetitionEditor {
         },
       });
     }
+
+    document
+      .getElementById("save")
+      .addEventListener("click", this.save.bind(this));
   }
   appendColumn(column) {
     const tableHeaderRow = document.getElementById("tableHeaderRow");
@@ -176,6 +205,30 @@ class CompetitionEditor {
   getData() {
     return this.data;
   }
+  save() {
+    // save the data to the server
+    console.log(this.data);
+    const data = editor.getData();
+    fetch(window.location, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+      .then((response) => {
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          alert("Failed to save");
+          console.log(response);
+        }
+      })
+      .catch((error) => {
+        alert("Failed to save");
+        console.log(error);
+      });
+  }
 }
 
 class Result {
@@ -185,11 +238,34 @@ class Result {
     this.DOMObject = document.createElement("tr");
   }
   appendColumn(column) {
+    if (column.type === "athlete_select") {
+      this.DOMObject.appendChild(new AthleteSelect(this.athlete_id).DOMObject);
+    }
     if (column.type === "HighJumpAttemptsField") {
       this.DOMObject.appendChild(
         new HighJumpAttemptsField(resolve(column.field, this.data)).DOMObject
       );
     }
+  }
+}
+
+class AthleteSelect {
+  constructor(athlete_id) {
+    this.athlete_id = athlete_id;
+    this.DOMObject = document.createElement("td");
+    this.DOMObject.textContent = athlete_id;
+    const changeAthleteButton = document.createElement("button");
+    changeAthleteButton.innerHTML = "Change";
+    changeAthleteButton.onclick = (e) => {
+      const athlete = prompt("Enter the athlete's id");
+      if (athlete !== null) {
+        editor.data.results[athlete] = editor.data.results[this.athlete_id];
+        delete editor.data.results[this.athlete_id];
+        // fix this, bug here
+        throw new Error("Not implemented");
+      }
+    };
+    this.DOMObject.appendChild(changeAthleteButton);
   }
 }
 

@@ -21,22 +21,6 @@
     <script>
         const config = {{ config | tojson }};
         const editor = new CompetitionEditor({{ data | tojson }});
-        const saveButton = document.getElementById('save');
-        saveButton.addEventListener('click', () => {
-            const data = editor.getData();
-            fetch(window.location, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            }).then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    alert('Failed to save');
-                }
-            });
-        });
+        
     </script>
 {% endblock %}

@@ -4,14 +4,6 @@ type: high_jump
 results:
   steve_smith:
     heights:
-      '1000':
-      - true
-      '1500':
-      - true
-      '2000':
-      - false
-      - false
-      - true
       '2500':
       - false
       - false
@@ -20,12 +12,11 @@ results:
       - false
       - false
       - false
+      '3500':
+      - false
+      - true
   john_jones:
     heights:
-      '1000':
-      - false
-      - false
-      - true
       '2500':
       - false
       - false
@@ -34,3 +25,7 @@ results:
       - false
       - false
       - false
+      '3500':
+      - false
+      - false
+      - true
