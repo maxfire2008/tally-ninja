@@ -279,24 +279,56 @@ class AthleteSelect {
     changeAthleteButton.onclick = (e) => {
       const new_athlete_id = prompt("Enter the athlete's id");
       if (new_athlete_id !== null) {
-        editor.data.results[new_athlete_id] =
-          editor.data.results[this.athlete_id];
-        delete editor.data.results[this.athlete_id];
-        // delete the result object from the editor.results array
-        editor.results = editor.results.filter(
-          (result) => result.athlete_id !== this.athlete_id
-        );
+        if (editor.data.results[new_athlete_id] === undefined) {
+          editor.data.results[new_athlete_id] =
+            editor.data.results[this.athlete_id];
+          delete editor.data.results[this.athlete_id];
+          // delete the result object from the editor.results array
+          editor.results = editor.results.filter(
+            (result) => result.athlete_id !== this.athlete_id
+          );
 
-        const r = new Result(
-          new_athlete_id,
-          editor.data.results[new_athlete_id]
-        );
-        editor.results.push(r);
-        // replace the old DOM object with the new one
-        this.DOMObject.innerHTML = "";
-        this.DOMObject.parentElement.replaceWith(r.DOMObject);
-        for (const column of editor.columns) {
-          r.appendColumn(column);
+          const r = new Result(
+            new_athlete_id,
+            editor.data.results[new_athlete_id]
+          );
+          editor.results.push(r);
+          // replace the old DOM object with the new one
+          this.DOMObject.innerHTML = "";
+          this.DOMObject.parentElement.replaceWith(r.DOMObject);
+          for (const column of editor.columns) {
+            r.appendColumn(column);
+          }
+        } else {
+          // swap the results in editor.data.results
+          const temp = editor.data.results[new_athlete_id];
+          editor.data.results[new_athlete_id] =
+            editor.data.results[this.athlete_id];
+          editor.data.results[this.athlete_id] = temp;
+          // swap the results in editor.results
+          const temp_result = editor.results.find(
+            (result) => result.athlete_id === new_athlete_id
+          );
+
+          editor.results.find(
+            (result) => result.athlete_id === new_athlete_id
+          ).data = editor.data.results[new_athlete_id];
+
+          editor.results.find(
+            (result) => result.athlete_id === this.athlete_id
+          ).data = temp;
+
+          const temp_DOMObject = temp_result.DOMObject;
+          editor.results.find(
+            (result) => result.athlete_id === new_athlete_id
+          ).DOMObject.innerHTML = "";
+          editor.results
+            .find((result) => result.athlete_id === new_athlete_id)
+            .DOMObject.parentElement.replaceWith(this.DOMObject);
+
+          this.DOMObject.innerHTML = "";
+          this.DOMObject.parentElement.replaceWith(temp_DOMObject);
+          throw new Error("Not implemented");
         }
       }
     };
