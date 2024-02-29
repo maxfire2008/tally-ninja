@@ -277,12 +277,27 @@ class AthleteSelect {
     const changeAthleteButton = document.createElement("button");
     changeAthleteButton.innerHTML = "Change";
     changeAthleteButton.onclick = (e) => {
-      const athlete = prompt("Enter the athlete's id");
-      if (athlete !== null) {
-        editor.data.results[athlete] = editor.data.results[this.athlete_id];
+      const new_athlete_id = prompt("Enter the athlete's id");
+      if (new_athlete_id !== null) {
+        editor.data.results[new_athlete_id] =
+          editor.data.results[this.athlete_id];
         delete editor.data.results[this.athlete_id];
-        // fix this, bug here
-        throw new Error("Not implemented");
+        // delete the result object from the editor.results array
+        editor.results = editor.results.filter(
+          (result) => result.athlete_id !== this.athlete_id
+        );
+
+        const r = new Result(
+          new_athlete_id,
+          editor.data.results[new_athlete_id]
+        );
+        editor.results.push(r);
+        // replace the old DOM object with the new one
+        this.DOMObject.innerHTML = "";
+        this.DOMObject.parentElement.replaceWith(r.DOMObject);
+        for (const column of editor.columns) {
+          r.appendColumn(column);
+        }
       }
     };
     this.DOMObject.appendChild(changeAthleteButton);
