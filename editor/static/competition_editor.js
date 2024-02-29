@@ -31,6 +31,11 @@ function resolve(path, obj = self, separator = ".") {
       return properties.reduce((prev, curr) => prev && prev[curr], obj);
     },
     set: function (value) {
+      for (const prop of properties.slice(0, -1)) {
+        if (resolve(prop, obj).get() === undefined) {
+          resolve(prop, obj).set({});
+        }
+      }
       properties.reduce((prev, curr, i, arr) => {
         if (i === arr.length - 1) {
           prev[curr] = value;
@@ -106,6 +111,8 @@ class CompetitionEditor {
   constructor(data, file_path) {
     this.data = data;
     this.results = [];
+    this.columns = [];
+
     for (const key in data.results) {
       const r = new Result(key, data.results[key]);
       this.results.push(r);
@@ -192,6 +199,7 @@ class CompetitionEditor {
       .addEventListener("click", this.save.bind(this));
   }
   appendColumn(column) {
+    this.columns.push(column);
     const tableHeaderRow = document.getElementById("tableHeaderRow");
     const th = document.createElement("th");
     th.innerHTML = column.name;
@@ -200,6 +208,18 @@ class CompetitionEditor {
     for (const result of this.results) {
       console.log(column);
       result.appendColumn(column);
+    }
+  }
+  addResult() {
+    const athlete = prompt("Enter the athlete's id");
+    if (athlete !== null) {
+      this.data.results[athlete] = {};
+      const r = new Result(athlete, this.data.results[athlete]);
+      this.results.push(r);
+      document.getElementById("tableBody").appendChild(r.DOMObject);
+      for (const column of this.columns) {
+        r.appendColumn(column);
+      }
     }
   }
   getData() {
