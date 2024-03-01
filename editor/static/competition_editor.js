@@ -278,7 +278,7 @@ class AthleteSelect {
     changeAthleteButton.innerHTML = "Change";
     changeAthleteButton.onclick = (e) => {
       const new_athlete_id = prompt("Enter the athlete's id");
-      if (new_athlete_id !== null) {
+      if (!(new_athlete_id === null || new_athlete_id === "")) {
         if (editor.data.results[new_athlete_id] === undefined) {
           editor.data.results[new_athlete_id] =
             editor.data.results[this.athlete_id];
@@ -299,7 +299,11 @@ class AthleteSelect {
           for (const column of editor.columns) {
             r.appendColumn(column);
           }
+        } else {
+          alert("You can't choose an athlete already in the list");
         }
+      } else {
+        alert("Please enter an Athlete ID");
       }
     };
     this.DOMObject.appendChild(changeAthleteButton);
