@@ -10,6 +10,7 @@ var onLocalStorageEvent = function (e) {
   if (e.key == "openpages") {
     // Listen if anybody else is opening the same page!
     localStorage.page_available = Date.now();
+    alert("Another Tally Ninja tab is open! Proceed with caution!");
   }
   if (e.key == "page_available") {
     alert("Another Tally Ninja tab is open! Proceed with caution!");
@@ -129,7 +130,7 @@ class CompetitionEditor {
       this.appendColumn({
         name: "Finish Time",
         field: "finish_time",
-        type: "duration",
+        type: "DurationField",
       });
     } else if (this.data.type === "high_jump") {
       addInstruction(
@@ -260,8 +261,11 @@ class Result {
   appendColumn(column) {
     if (column.type === "athlete_select") {
       this.DOMObject.appendChild(new AthleteSelect(this.athlete_id).DOMObject);
-    }
-    if (column.type === "HighJumpAttemptsField") {
+    } else if (column.type === "DurationField") {
+      this.DOMObject.appendChild(
+        new DurationField(resolve(column.field, this.data)).DOMObject
+      );
+    } else if (column.type === "HighJumpAttemptsField") {
       this.DOMObject.appendChild(
         new HighJumpAttemptsField(resolve(column.field, this.data)).DOMObject
       );
@@ -307,6 +311,29 @@ class AthleteSelect {
       }
     };
     this.DOMObject.appendChild(changeAthleteButton);
+  }
+}
+
+class DurationField {
+  constructor(value) {
+    this.value = value;
+    this.DOMObject = document.createElement("td");
+    const inputBox = document.createElement("input");
+    inputBox.type = "text";
+    const raw_value = value.get();
+    if (raw_value === undefined) {
+      inputBox.value = "";
+    } else {
+      inputBox.value = millisecondsToHhmmss(raw_value);
+    }
+    inputBox.onchange = (e) => {
+      if (e.target.value === "") {
+        value.delete();
+      } else {
+        value.set(hhmmssToMilliseconds(e.target.value));
+      }
+    };
+    this.DOMObject.appendChild(inputBox);
   }
 }
 
