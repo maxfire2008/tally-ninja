@@ -299,36 +299,6 @@ class AthleteSelect {
           for (const column of editor.columns) {
             r.appendColumn(column);
           }
-        } else {
-          // swap the results in editor.data.results
-          const temp = editor.data.results[new_athlete_id];
-          editor.data.results[new_athlete_id] =
-            editor.data.results[this.athlete_id];
-          editor.data.results[this.athlete_id] = temp;
-          // swap the results in editor.results
-          const temp_result = editor.results.find(
-            (result) => result.athlete_id === new_athlete_id
-          );
-
-          editor.results.find(
-            (result) => result.athlete_id === new_athlete_id
-          ).data = editor.data.results[new_athlete_id];
-
-          editor.results.find(
-            (result) => result.athlete_id === this.athlete_id
-          ).data = temp;
-
-          const temp_DOMObject = temp_result.DOMObject;
-          editor.results.find(
-            (result) => result.athlete_id === new_athlete_id
-          ).DOMObject.innerHTML = "";
-          editor.results
-            .find((result) => result.athlete_id === new_athlete_id)
-            .DOMObject.parentElement.replaceWith(this.DOMObject);
-
-          this.DOMObject.innerHTML = "";
-          this.DOMObject.parentElement.replaceWith(temp_DOMObject);
-          throw new Error("Not implemented");
         }
       }
     };
