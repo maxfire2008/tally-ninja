@@ -1,6 +1,9 @@
 {% extends "base.html.j2" %}
 {% block head %}<link rel="stylesheet" href="/static/competition_editor.css">{% endblock %}
 {% block content %}
+    <div>
+        <a href='{{ url_for("index") }}'>Main Menu</a>
+    </div>
     <div id="header"></div>
     <div>
         <table>
@@ -11,7 +14,7 @@
             </tbody>
         </table>
     </div>
-    <button id="new_result">New Result</button>
+    <button id="newResult">New Result</button>
     <button id="save">Save</button>
     <h2>Instructions</h2>
     <ul id="instructions">

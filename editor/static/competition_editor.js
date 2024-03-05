@@ -5,19 +5,6 @@
 /  const result_editor = new ResultEditor(data);
 */
 
-localStorage.openpages = Date.now();
-var onLocalStorageEvent = function (e) {
-  if (e.key == "openpages") {
-    // Listen if anybody else is opening the same page!
-    localStorage.page_available = Date.now();
-    alert("Another Tally Ninja tab is open! Proceed with caution!");
-  }
-  if (e.key == "page_available") {
-    alert("Another Tally Ninja tab is open! Proceed with caution!");
-  }
-};
-window.addEventListener("storage", onLocalStorageEvent, false);
-
 let last_id = 0;
 
 function new_id() {
@@ -196,6 +183,10 @@ class CompetitionEditor {
     }
 
     document
+      .getElementById("newResult")
+      .addEventListener("click", this.addResult.bind(this));
+
+    document
       .getElementById("save")
       .addEventListener("click", this.save.bind(this));
   }
@@ -253,10 +244,14 @@ class CompetitionEditor {
 }
 
 class Result {
-  constructor(athlete_id, data) {
+  constructor(athlete_id, data, DOMObject = null) {
     this.athlete_id = athlete_id;
     this.data = data;
-    this.DOMObject = document.createElement("tr");
+    if (DOMObject !== null) {
+      this.DOMObject = DOMObject;
+    } else {
+      this.DOMObject = document.createElement("tr");
+    }
   }
   appendColumn(column) {
     if (column.type === "athlete_select") {
@@ -304,7 +299,52 @@ class AthleteSelect {
             r.appendColumn(column);
           }
         } else {
-          alert("You can't choose an athlete already in the list");
+          if (confirm("Do you wish to swap these athletes?")) {
+            const this_athlete_data = structuredClone(
+              editor.data.results[this.athlete_id]
+            );
+            const other_athlete_data = structuredClone(
+              editor.data.results[new_athlete_id]
+            );
+
+            editor.data.results[this.athlete_id] = other_athlete_data;
+            editor.data.results[new_athlete_id] = this_athlete_data;
+
+            const this_athlete_DOMObject = editor.results.filter(
+              (result) => result.athlete_id === this.athlete_id
+            )[0].DOMObject;
+            const other_athlete_DOMObject = editor.results.filter(
+              (result) => result.athlete_id === new_athlete_id
+            )[0].DOMObject;
+
+            editor.results = editor.results.filter(
+              (result) =>
+                result.athlete_id !== this.athlete_id &&
+                result.athlete_id !== new_athlete_id
+            );
+
+            other_athlete_DOMObject.innerHTML = "";
+            const this_DOMObject_new = new Result(
+              this.athlete_id,
+              other_athlete_data,
+              other_athlete_DOMObject
+            );
+            for (const column of editor.columns) {
+              this_DOMObject_new.appendColumn(column);
+            }
+            editor.results.push(this_DOMObject_new);
+
+            this_athlete_DOMObject.innerHTML = "";
+            const other_DOMObject_new = new Result(
+              new_athlete_id,
+              this_athlete_data,
+              this_athlete_DOMObject
+            );
+            for (const column of editor.columns) {
+              other_DOMObject_new.appendColumn(column);
+            }
+            editor.results.push(other_DOMObject_new);
+          }
         }
       } else {
         alert("Please enter an Athlete ID");
