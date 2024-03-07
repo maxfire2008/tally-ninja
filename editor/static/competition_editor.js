@@ -374,7 +374,7 @@ class RemoveButton {
     deleteAthleteButton.innerHTML = "Delete";
     deleteAthleteButton.onclick = (e) => {
       // delete the DOMObject
-      this.DOMObject.parentElement.delete();
+      this.DOMObject.parentElement.remove();
       // delete the result in the data
       delete editor.data.results[this.athlete_id];
       // delete the result object from the editor.results array
