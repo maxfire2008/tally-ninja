@@ -4,3 +4,6 @@ type: race
 results:
   steve_smith:
     finish_time: 74020
+  leonard_hofstadter:
+    finish_time: 130020
+    DNF: true

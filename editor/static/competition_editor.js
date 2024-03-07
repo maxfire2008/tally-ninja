@@ -172,13 +172,19 @@ class CompetitionEditor {
       document.getElementById("tableHeaderRow").appendChild(addHeightButton);
     }
 
+    for (const checkbox_type of ["DNF", "DNS", "DQ"]) {
+      this.appendColumn({
+        name: checkbox_type,
+        field: checkbox_type,
+        type: "checkbox",
+      });
+    }
+
     for (const result of this.results) {
       result.appendColumn({
         name: "Remove",
+        field: null,
         type: "remove_button",
-        value: () => {
-          delete this.data.results[result.athlete_id];
-        },
       });
     }
 
@@ -264,6 +270,12 @@ class Result {
       this.DOMObject.appendChild(
         new HighJumpAttemptsField(resolve(column.field, this.data)).DOMObject
       );
+    } else if (column.type === "checkbox") {
+      this.DOMObject.appendChild(
+        new CheckboxField(resolve(column.field, this.data)).DOMObject
+      );
+    } else if (column.type === "remove_button") {
+      this.DOMObject.appendChild(new RemoveButton(this.athlete_id).DOMObject);
     }
   }
 }
@@ -351,6 +363,26 @@ class AthleteSelect {
       }
     };
     this.DOMObject.appendChild(changeAthleteButton);
+  }
+}
+
+class RemoveButton {
+  constructor(athlete_id) {
+    this.athlete_id = athlete_id;
+    this.DOMObject = document.createElement("td");
+    const deleteAthleteButton = document.createElement("button");
+    deleteAthleteButton.innerHTML = "Delete";
+    deleteAthleteButton.onclick = (e) => {
+      // delete the DOMObject
+      this.DOMObject.parentElement.delete();
+      // delete the result in the data
+      delete editor.data.results[this.athlete_id];
+      // delete the result object from the editor.results array
+      editor.results = editor.results.filter(
+        (result) => result.athlete_id !== this.athlete_id
+      );
+    };
+    this.DOMObject.appendChild(deleteAthleteButton);
   }
 }
 
@@ -442,5 +474,28 @@ class HighJumpAttemptsField {
       this.appendCreateInputButton();
     };
     this.DOMObject.appendChild(removeValueButton);
+  }
+}
+
+class CheckboxField {
+  constructor(value) {
+    this.value = value;
+    this.DOMObject = document.createElement("td");
+    this.checkbox = document.createElement("input");
+    this.checkbox.type = "checkbox";
+
+    if (value.get() === true) {
+      this.checkbox.checked = true;
+    }
+
+    this.checkbox.onchange = (e) => {
+      if (this.checkbox.checked === true) {
+        this.value.set(true);
+      } else {
+        this.value.delete();
+      }
+    };
+
+    this.DOMObject.appendChild(this.checkbox);
   }
 }
