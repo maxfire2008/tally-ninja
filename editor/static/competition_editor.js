@@ -104,7 +104,6 @@ class CompetitionEditor {
     for (const key in data.results) {
       const r = new Result(key, data.results[key]);
       this.results.push(r);
-      document.getElementById("tableBody").appendChild(r.DOMObject);
     }
 
     this.appendColumn({
@@ -186,6 +185,11 @@ class CompetitionEditor {
       field: null,
       type: "remove_button",
     });
+
+    // add the results to the table
+    for (const result of this.results) {
+      document.getElementById("tableBody").appendChild(result.DOMObject);
+    }
 
     document
       .getElementById("newResult")

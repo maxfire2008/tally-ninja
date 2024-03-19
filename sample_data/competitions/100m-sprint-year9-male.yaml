@@ -7,3 +7,8 @@ results:
   leonard_hofstadter:
     finish_time: 130020
     DNF: true
+  sheldon_cooper:
+    finish_time: 32100
+  jane_doe:
+    finish_time: 53740
+heights: []
