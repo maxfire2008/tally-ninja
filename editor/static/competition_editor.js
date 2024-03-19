@@ -133,16 +133,18 @@ class CompetitionEditor {
         "Only enter 3 attempts. If an athlete only attempted i.e., 2 jumps, only enter 2 characters."
       );
 
-      let hj_columns = [];
       for (const key in data.results) {
         for (const height in data.results[key]["heights"]) {
-          if (!hj_columns.includes(height)) {
-            hj_columns.push(height);
+          if (!this.data.heights.includes(height)) {
+            this.data.heights.push(height);
           }
         }
       }
-      hj_columns.sort();
-      for (const column of hj_columns) {
+      // de-duplicate the heights
+      this.data.heights = [...new Set(this.data.heights)];
+
+      this.data.heights.sort((a, b) => a - b);
+      for (const column of this.data.heights) {
         this.appendColumn({
           name: column + " mm",
           field: ["heights", column],
@@ -164,12 +166,11 @@ class CompetitionEditor {
             field: ["heights", height],
             type: "HighJumpAttemptsField",
           });
+          // add to the editors .heights
+          this.data.heights.push(Number(height));
         }
-        // ensure the Add Height button is always the last column
-        e.target.remove();
-        document.getElementById("tableHeaderRow").appendChild(addHeightButton);
       };
-      document.getElementById("tableHeaderRow").appendChild(addHeightButton);
+      document.getElementById("header").appendChild(addHeightButton);
     }
 
     for (const checkbox_type of ["DNF", "DNS", "DQ"]) {
@@ -180,13 +181,11 @@ class CompetitionEditor {
       });
     }
 
-    for (const result of this.results) {
-      result.appendColumn({
-        name: "Remove",
-        field: null,
-        type: "remove_button",
-      });
-    }
+    this.appendColumn({
+      name: "",
+      field: null,
+      type: "remove_button",
+    });
 
     document
       .getElementById("newResult")
@@ -221,6 +220,18 @@ class CompetitionEditor {
     }
   }
   getData() {
+    // tidy the heights
+    for (const key in this.data.results) {
+      for (const height in this.data.results[key]["heights"]) {
+        if (!this.data.heights.includes(height)) {
+          this.data.heights.push(height);
+        }
+      }
+    }
+    // de-duplicate the heights
+    this.data.heights = [...new Set(this.data.heights)];
+    this.data.heights.sort((a, b) => a - b);
+
     return this.data;
   }
   save() {
@@ -284,9 +295,8 @@ class AthleteSelect {
   constructor(athlete_id) {
     this.athlete_id = athlete_id;
     this.DOMObject = document.createElement("td");
-    this.DOMObject.textContent = athlete_id;
     const changeAthleteButton = document.createElement("button");
-    changeAthleteButton.innerHTML = "Change";
+    changeAthleteButton.innerHTML = athlete_id;
     changeAthleteButton.onclick = (e) => {
       const new_athlete_id = prompt("Enter the athlete's id");
       if (!(new_athlete_id === null || new_athlete_id === "")) {
