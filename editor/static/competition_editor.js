@@ -415,6 +415,47 @@ class DurationField {
         value.set(hhmmssToMilliseconds(e.target.value));
       }
     };
+
+    inputBox.onkeydown = (e) => {
+      /* Enter will advance to the same field in the next row             \
+      |  Shift + Enter will advance to the same field in the previous row |
+      \  This should wrap if the current row is the first or last row    */
+
+      if (e.key === "Enter") {
+        let newSelection;
+        if (e.shiftKey) {
+          newSelection = e.target.parentElement.parentElement.previousSibling;
+          if (newSelection === null || newSelection.tagName !== "TR") {
+            // get the last TR in the table
+            const rows =
+              e.target.parentElement.parentElement.parentElement.getElementsByTagName(
+                "TR"
+              );
+            newSelection = rows[rows.length - 1];
+          }
+        } else {
+          newSelection = e.target.parentElement.parentElement.nextSibling;
+          if (newSelection === null || newSelection.tagName !== "TR") {
+            // get the first TR in the table
+            const rows =
+              e.target.parentElement.parentElement.parentElement.getElementsByTagName(
+                "TR"
+              );
+            newSelection = rows[0];
+          }
+        }
+
+        // get the index of the current cell
+        const index = Array.from(
+          e.target.parentElement.parentElement.children
+        ).indexOf(e.target.parentElement);
+
+        // get the next cell
+        const nextCell = newSelection.children[index];
+        nextCell.children[0].focus();
+      }
+    };
+
     this.DOMObject.appendChild(inputBox);
   }
 }
