@@ -132,6 +132,10 @@ class CompetitionEditor {
         "Only enter 3 attempts. If an athlete only attempted i.e., 2 jumps, only enter 2 characters."
       );
 
+      if (this.data.heights === undefined) {
+        this.data.heights = [];
+      }
+
       for (const key in data.results) {
         for (const height in data.results[key]["heights"]) {
           if (!this.data.heights.includes(height)) {
