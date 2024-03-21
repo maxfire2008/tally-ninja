@@ -1,0 +1,22 @@
+competitor_type: individual
+results:
+  john:
+    heat: 1
+    place: 1
+  jane:
+    heat: 1
+    place: 2
+  jamie:
+    heat: 1
+    place: 3
+  jones:
+    heat: '2'
+    place: '1'
+  '234':
+    heat: 2
+    place: 3
+  asdf:
+    heat: 2
+    place: 2
+type: race
+heights: []

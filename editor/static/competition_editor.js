@@ -114,6 +114,26 @@ class CompetitionEditor {
 
     if (this.data.type === "race") {
       this.appendColumn({
+        name: "Heat",
+        field: "heat",
+        type: "NumberField",
+        min: 1,
+      });
+
+      this.appendColumn({
+        name: "Place",
+        field: "place",
+        type: "NumberField",
+        min: 1,
+      });
+
+      // sort athletes by heat and place
+      this.results.sort((a, b) => {
+        console.log(a.data.heat, b.data.heat, a.data.place, b.data.place);
+        return a.data.heat - b.data.heat || a.data.place - b.data.place;
+      });
+
+      this.appendColumn({
         name: "Finish Time",
         field: "finish_time",
         type: "DurationField",
@@ -176,6 +196,10 @@ class CompetitionEditor {
       document.getElementById("header").appendChild(addHeightButton);
     }
 
+    addInstruction(
+      "NB: The place field is only used by the editor, it is not used in results calculations."
+    );
+
     for (const checkbox_type of ["DNF", "DNS", "DQ"]) {
       this.appendColumn({
         name: checkbox_type,
@@ -202,6 +226,14 @@ class CompetitionEditor {
     document
       .getElementById("save")
       .addEventListener("click", this.save.bind(this));
+
+    // listen for (CTRL or CMD) + S to save
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        this.save();
+      }
+    });
   }
   appendColumn(column) {
     this.columns.push(column);
@@ -215,10 +247,42 @@ class CompetitionEditor {
       result.appendColumn(column);
     }
   }
-  addResult() {
+  addResult(e) {
     const athlete = prompt("Enter the athlete's id");
     if (athlete !== null) {
       this.data.results[athlete] = {};
+
+      if (this.data.type === "race") {
+        let maximumHeat = 1;
+        for (const result of this.results) {
+          if (
+            Number(result.data.heat) !== undefined &&
+            Number(result.data.heat) > maximumHeat
+          ) {
+            maximumHeat = Number(result.data.heat);
+          }
+        }
+
+        if (e.shiftKey) {
+          maximumHeat += 1;
+        }
+
+        let maximumPlace = 0;
+        for (const result of this.results) {
+          if (
+            Number(result.data.place) !== undefined &&
+            Number(result.data.heat) === maximumHeat
+          ) {
+            if (Number(result.data.place) > maximumPlace) {
+              maximumPlace = Number(result.data.place);
+            }
+          }
+        }
+
+        this.data.results[athlete]["heat"] = maximumHeat;
+        this.data.results[athlete]["place"] = maximumPlace + 1;
+      }
+
       const r = new Result(athlete, this.data.results[athlete]);
       this.results.push(r);
       document.getElementById("tableBody").appendChild(r.DOMObject);
@@ -285,6 +349,14 @@ class Result {
       this.DOMObject.appendChild(
         new DurationField(resolve(column.field, this.data)).DOMObject
       );
+    } else if (column.type === "NumberField") {
+      this.DOMObject.appendChild(
+        new NumberField(
+          resolve(column.field, this.data),
+          column.min,
+          column.max
+        ).DOMObject
+      );
     } else if (column.type === "HighJumpAttemptsField") {
       this.DOMObject.appendChild(
         new HighJumpAttemptsField(resolve(column.field, this.data)).DOMObject
@@ -295,7 +367,51 @@ class Result {
       );
     } else if (column.type === "remove_button") {
       this.DOMObject.appendChild(new RemoveButton(this.athlete_id).DOMObject);
+    } else {
+      const dummyTd = document.createElement("td");
+      dummyTd.innerHTML = "Not Implemented";
+      this.DOMObject.appendChild(dummyTd);
     }
+  }
+}
+
+function fieldKeyDownHandler(e) {
+  /* Enter will advance to the same field in the next row             \
+  |  Shift + Enter will advance to the same field in the previous row |
+  \  This should wrap if the current row is the first or last row    */
+
+  if (e.key === "Enter") {
+    let newSelection;
+    if (e.shiftKey) {
+      newSelection = e.target.parentElement.parentElement.previousSibling;
+      if (newSelection === null || newSelection.tagName !== "TR") {
+        // get the last TR in the table
+        const rows =
+          e.target.parentElement.parentElement.parentElement.getElementsByTagName(
+            "TR"
+          );
+        newSelection = rows[rows.length - 1];
+      }
+    } else {
+      newSelection = e.target.parentElement.parentElement.nextSibling;
+      if (newSelection === null || newSelection.tagName !== "TR") {
+        // get the first TR in the table
+        const rows =
+          e.target.parentElement.parentElement.parentElement.getElementsByTagName(
+            "TR"
+          );
+        newSelection = rows[0];
+      }
+    }
+
+    // get the index of the current cell
+    const index = Array.from(
+      e.target.parentElement.parentElement.children
+    ).indexOf(e.target.parentElement);
+
+    // get the next cell
+    const nextCell = newSelection.children[index];
+    nextCell.children[0].focus();
   }
 }
 
@@ -424,46 +540,28 @@ class DurationField {
       }
     };
 
-    inputBox.onkeydown = (e) => {
-      /* Enter will advance to the same field in the next row             \
-      |  Shift + Enter will advance to the same field in the previous row |
-      \  This should wrap if the current row is the first or last row    */
+    inputBox.onkeydown = fieldKeyDownHandler;
 
-      if (e.key === "Enter") {
-        let newSelection;
-        if (e.shiftKey) {
-          newSelection = e.target.parentElement.parentElement.previousSibling;
-          if (newSelection === null || newSelection.tagName !== "TR") {
-            // get the last TR in the table
-            const rows =
-              e.target.parentElement.parentElement.parentElement.getElementsByTagName(
-                "TR"
-              );
-            newSelection = rows[rows.length - 1];
-          }
-        } else {
-          newSelection = e.target.parentElement.parentElement.nextSibling;
-          if (newSelection === null || newSelection.tagName !== "TR") {
-            // get the first TR in the table
-            const rows =
-              e.target.parentElement.parentElement.parentElement.getElementsByTagName(
-                "TR"
-              );
-            newSelection = rows[0];
-          }
-        }
+    this.DOMObject.appendChild(inputBox);
+  }
+}
 
-        // get the index of the current cell
-        const index = Array.from(
-          e.target.parentElement.parentElement.children
-        ).indexOf(e.target.parentElement);
-
-        // get the next cell
-        const nextCell = newSelection.children[index];
-        nextCell.children[0].focus();
-      }
+class NumberField {
+  constructor(value, min = null, max = null) {
+    this.value = value;
+    this.DOMObject = document.createElement("td");
+    const inputBox = document.createElement("input");
+    inputBox.type = "number";
+    if (min !== null) {
+      inputBox.min = min;
+    }
+    if (max !== null) {
+      inputBox.max = max;
+    }
+    inputBox.value = value.get();
+    inputBox.onchange = (e) => {
+      value.set(Number(e.target.value));
     };
-
     this.DOMObject.appendChild(inputBox);
   }
 }
