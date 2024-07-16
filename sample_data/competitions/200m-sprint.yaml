@@ -3,20 +3,26 @@ results:
   john:
     heat: 1
     place: 1
+    finish_time: 43400
   jane:
     heat: 1
     place: 2
+    finish_time: 23270
   jamie:
     heat: 1
     place: 3
+    finish_time: 32220
   jones:
-    heat: '2'
-    place: '1'
+    heat: 2
+    place: 1
+    finish_time: 22300
   '234':
     heat: 2
     place: 3
+    finish_time: 92500
   asdf:
     heat: 2
     place: 2
+    finish_time: 43100
 type: race
 heights: []

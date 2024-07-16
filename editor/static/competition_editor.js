@@ -106,6 +106,24 @@ class CompetitionEditor {
       this.results.push(r);
     }
 
+    const changeCompetitorTypeButton = document.createElement("button");
+    if (this.data.competitor_type === "individual") {
+      changeCompetitorTypeButton.innerHTML = "Change to Team";
+    } else {
+      changeCompetitorTypeButton.innerHTML = "Change to Individual";
+    }
+
+    changeCompetitorTypeButton.onclick = (e) => {
+      if (this.data.competitor_type === "individual") {
+        this.data.competitor_type = "team";
+      } else {
+        this.data.competitor_type = "individual";
+      }
+      this.save();
+    };
+
+    document.getElementById("header").appendChild(changeCompetitorTypeButton);
+
     this.appendColumn({
       name: "Athlete",
       field: null,
@@ -141,7 +159,7 @@ class CompetitionEditor {
     } else if (this.data.type === "high_jump") {
       addInstruction(
         "Enter 'f' for failed attempts and 's' for successful attempts. " +
-          "For example, 'ffs' would indicate two failed attempts then one successful attempt."
+        "For example, 'ffs' would indicate two failed attempts then one successful attempt."
       );
 
       addInstruction(
