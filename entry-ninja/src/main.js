@@ -6,6 +6,8 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+app.disableHardwareAcceleration();
+
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
