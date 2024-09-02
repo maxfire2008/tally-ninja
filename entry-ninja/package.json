@@ -35,11 +35,11 @@
     "name": "maxfire2008",
     "email": "22722054+maxfire2008@users.noreply.github.com"
   },
-  "license": "MIT",
+  "license": "UNLICENSED",
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "entry-ninja": "file:",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.1"
+    "react-dom": "^18.3.1"
   }
 }
