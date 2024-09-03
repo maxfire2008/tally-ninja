@@ -1,3 +1,4 @@
+import { ipcMain, dialog } from 'electron';
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
 
@@ -7,6 +8,18 @@ if (require('electron-squirrel-startup')) {
 }
 
 app.disableHardwareAcceleration();
+
+ipcMain.handle('select-directory', async (event, operation) => {
+  const properties = operation === 'export' ? ['openDirectory', 'createDirectory'] : ['openDirectory'];
+  const result = await dialog.showOpenDialog({
+    properties: properties
+  });
+  if (result.canceled) {
+    return null;
+  } else {
+    return result.filePaths[0];
+  }
+});
 
 const createWindow = () => {
   // Create the browser window.
