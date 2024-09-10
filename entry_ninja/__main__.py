@@ -1,13 +1,9 @@
 import wx
+from . import root_frame
 
-# Next, create an application object.
 app = wx.App()
 
-# Then a frame.
-frm = wx.Frame(None, title="Hello World")
+frame = root_frame.RootFrame()
+frame.Show()
 
-# Show it.
-frm.Show()
-
-# Start the event loop.
 app.MainLoop()
