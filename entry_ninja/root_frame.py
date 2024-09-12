@@ -11,6 +11,8 @@ class RootFrame(wx.Frame):
         # full screen the window
         self.Maximize(True)
 
+        self._panel = wx.Panel(self)
+
         database_directory = cfg.get("database_directory")
 
         # if the db directory == None, then the user has not set the db directory
@@ -20,18 +22,18 @@ class RootFrame(wx.Frame):
             self.ShowResultSelectionPanel()
 
     def ShowTitlePanel(self):
-        panel = wx.Panel(self)
+        self._panel.DestroyChildren()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        title = wx.StaticText(panel, label="Entry Ninja")
+        title = wx.StaticText(self._panel, label="Entry Ninja")
         sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        set_database_button = wx.Button(panel, label="Set Database Directory")
+        set_database_button = wx.Button(self._panel, label="Set Database Directory")
         set_database_button.Bind(wx.EVT_BUTTON, self.ShowSetDatabaseDirectoryDialog)
         sizer.Add(set_database_button, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
-        panel.SetSizer(sizer)
+        self._panel.SetSizer(sizer)
 
     def ShowSetDatabaseDirectoryDialog(self, event=None):
         dialog = wx.DirDialog(
@@ -44,8 +46,8 @@ class RootFrame(wx.Frame):
             # check the database has a the correct structure
             # if not, show a message box and return to the dialog
             if not (
-                (pathlib.Path(database_directory) / "results" / "field").exists
-                and (pathlib.Path(database_directory) / "results" / "timing").exists
+                (pathlib.Path(database_directory) / "results" / "field").exists()
+                and (pathlib.Path(database_directory) / "results" / "timing").exists()
             ):
                 messagebox = wx.MessageDialog(
                     self,
@@ -59,30 +61,23 @@ class RootFrame(wx.Frame):
                 return
 
             cfg.set("database_directory", database_directory)
-            # destory the panel and show the result selection panel
-            event.GetEventObject().GetParent().Destroy()
+
             self.ShowResultSelectionPanel()
 
     def ShowResultSelectionPanel(self):
-        panel = wx.Panel(self)
+        self._panel.DestroyChildren()
 
         # list of all the files in the database/results/field directory
-        database_directory = (
+        field_events_directory = (
             pathlib.Path(cfg.get("database_directory")) / "results" / "field"
         )
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        title = wx.StaticText(panel, label="Entry Ninja")
-        sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        title = wx.StaticText(self._panel, label="Entry Ninja")
+        sizer.Add(title, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
-        result_files = list(database_directory.glob("*.csv"))
-        for result_file in result_files:
-            result_button = wx.Button(panel, label=result_file.stem)
-            result_button.Bind(wx.EVT_BUTTON, self.ShowResultPanel)
-            sizer.Add(result_button, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-
-        panel.SetSizer(sizer)
+        self._panel.SetSizer(sizer)
 
     def OnClose(self, event):
         dialog = wx.MessageDialog(
