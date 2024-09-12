@@ -1,0 +1,7 @@
+times:
+  - lane: 1
+    heat: 1
+    time: 23400
+  - lane: 2
+    heat: 1
+    time: 52700
