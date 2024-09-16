@@ -1,0 +1,47 @@
+{% extends "base.html.j2" %}
+{% block content %}
+    <h1>Tally Ninja</h1>
+    <h2>List of events</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Results</th>
+                <th>Times</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+                <tr>
+                    <td>{{ event.id }}</td>
+                    <td>{{ event.name }}</td>
+                    <td>{{ event.type }}</td>
+                    <td>
+                        {% if event.results %}
+                            <a href="{{ url_for('editor', type='results', id=event.results) }}">View</a>
+                        {% else %}
+                            <form action="{{ url_for('create_document', type='results', id=event.id) }}"
+                                  method="post">
+                                <button type="submit">Create</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if event.times %}
+                            <a href="{{ url_for('editor', type='results', id=event.results) }}">View</a>
+                        {% elif event.type == 'race' %}
+                            <form action="{{ url_for('create_document', type='times', id=event.id) }}"
+                                  method="post">
+                                <button type="submit">Create</button>
+                            </form>
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock content %}

@@ -25,10 +25,69 @@ def get_config():
 @app.route("/")
 def index():
     # list files in app.config["RACEML_DATABASE"]/events
-    events = list((app.config["RACEML_DATABASE"] / "events").iterdir())
-    print(events)
+    event_info = [
+        f.name for f in (app.config["RACEML_DATABASE"] / "event_info").glob("*.yaml")
+    ]
 
-    return "hello"
+    results = [
+        f.name for f in (app.config["RACEML_DATABASE"] / "results").glob("*.yaml")
+    ]
+
+    times = [f.name for f in (app.config["RACEML_DATABASE"] / "times").glob("*.yaml")]
+
+    all_names = set(event_info + results + times)
+
+    events = []
+
+    for name in all_names:
+        # open the event_info file
+        with open(
+            app.config["RACEML_DATABASE"] / "event_info" / name,
+            "r",
+            encoding="utf-8",
+        ) as file:
+            event = yaml.safe_load(file.read())
+            print(event)
+            events.append(
+                {
+                    "id": name,
+                    "name": event["name"],
+                    "type": event["type"],
+                    "results": (name if name in results else None),
+                    "times": (name if name in times else None),
+                }
+            )
+
+    events.sort(key=lambda x: str(x))
+
+    return flask.render_template("index.html.j2", events=events)
+
+
+@app.route("/editor/<string:type>/<string:id>")
+def editor(type, id):
+    if type not in ["results", "times"]:
+        return "Invalid type", 400
+
+    try:
+        with open(
+            app.config["RACEML_DATABASE"] / type / id, "r", encoding="utf-8"
+        ) as file:
+            data = yaml.safe_load(file.read())
+    except FileNotFoundError:
+        data = {}
+
+    return flask.render_template("editor.html.j2", type=type, id=id, data=data)
+
+
+@app.route("/create_document/<string:type>/<string:id>")
+def create_document(type, id):
+    if type not in ["results", "times"]:
+        return "Invalid type", 400
+
+    with open(app.config["RACEML_DATABASE"] / type / id, "w", encoding="utf-8") as file:
+        file.write("")
+
+    return flask.redirect(flask.url_for("editor", type=type, id=id))
 
 
 def update_dictionary(dictionary, new_data):
