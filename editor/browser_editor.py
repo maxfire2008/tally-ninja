@@ -52,7 +52,7 @@ def index():
                 {
                     "id": name,
                     "name": event["name"],
-                    "type": event["type"],
+                    "event_type": event["event_type"],
                     "results": (name if name in results else None),
                     "times": (name if name in times else None),
                 }
@@ -63,31 +63,33 @@ def index():
     return flask.render_template("index.html.j2", events=events)
 
 
-@app.route("/editor/<string:type>/<string:id>")
-def editor(type, id):
-    if type not in ["results", "times"]:
-        return "Invalid type", 400
+@app.route("/editor/<string:doc_type>/<string:id>")
+def editor(doc_type, id):
+    if doc_type not in ["results", "times"]:
+        return "Invalid doc_type", 400
 
     try:
         with open(
-            app.config["RACEML_DATABASE"] / type / id, "r", encoding="utf-8"
+            app.config["RACEML_DATABASE"] / doc_type / id, "r", encoding="utf-8"
         ) as file:
             data = yaml.safe_load(file.read())
     except FileNotFoundError:
         data = {}
 
-    return flask.render_template("editor.html.j2", type=type, id=id, data=data)
+    return flask.render_template("editor.html.j2", doc_type=doc_type, id=id, data=data)
 
 
-@app.route("/create_document/<string:type>/<string:id>")
-def create_document(type, id):
-    if type not in ["results", "times"]:
-        return "Invalid type", 400
+@app.route("/create_document/<string:doc_type>/<string:id>", methods=["POST"])
+def create_document(doc_type, id):
+    if doc_type not in ["results", "times"]:
+        return "Invalid doc_type", 400
 
-    with open(app.config["RACEML_DATABASE"] / type / id, "w", encoding="utf-8") as file:
-        file.write("")
+    with open(
+        app.config["RACEML_DATABASE"] / doc_type / id, "w", encoding="utf-8"
+    ) as file:
+        yaml.dump({doc_type: []}, file, default_flow_style=False)
 
-    return flask.redirect(flask.url_for("editor", type=type, id=id))
+    return flask.redirect(flask.url_for("editor", doc_type=doc_type, id=id))
 
 
 def update_dictionary(dictionary, new_data):

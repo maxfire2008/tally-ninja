@@ -7,7 +7,7 @@
             <tr>
                 <th>ID</th>
                 <th>Name</th>
-                <th>Type</th>
+                <th>Event Type</th>
                 <th>Results</th>
                 <th>Times</th>
             </tr>
@@ -17,12 +17,12 @@
                 <tr>
                     <td>{{ event.id }}</td>
                     <td>{{ event.name }}</td>
-                    <td>{{ event.type }}</td>
+                    <td>{{ event.event_type }}</td>
                     <td>
                         {% if event.results %}
-                            <a href="{{ url_for('editor', type='results', id=event.results) }}">View</a>
+                            <a href="{{ url_for('editor', doc_type='results', id=event.results) }}">View</a>
                         {% else %}
-                            <form action="{{ url_for('create_document', type='results', id=event.id) }}"
+                            <form action="{{ url_for('create_document', doc_type='results', id=event.id) }}"
                                   method="post">
                                 <button type="submit">Create</button>
                             </form>
@@ -30,9 +30,9 @@
                     </td>
                     <td>
                         {% if event.times %}
-                            <a href="{{ url_for('editor', type='results', id=event.results) }}">View</a>
-                        {% elif event.type == 'race' %}
-                            <form action="{{ url_for('create_document', type='times', id=event.id) }}"
+                            <a href="{{ url_for('editor', doc_type='results', id=event.results) }}">View</a>
+                        {% elif event.event_type == 'race' %}
+                            <form action="{{ url_for('create_document', doc_type='times', id=event.id) }}"
                                   method="post">
                                 <button type="submit">Create</button>
                             </form>

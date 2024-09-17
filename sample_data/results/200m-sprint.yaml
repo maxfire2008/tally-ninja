@@ -1,7 +1,7 @@
 results:
   - lane: 1
     heat: 1
-    student: dave
+    athlete: dave
   - lane: 2
     heat: 1
-    student: bob
+    athlete: bob
