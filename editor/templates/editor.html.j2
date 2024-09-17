@@ -1,5 +1,18 @@
 {% extends "base.html.j2" %}
 {% block content %}
-    <div id="editor"></div>
-    <script type="module" src="/static/editor.js"></script>
+    <div id="editorHolder"></div>
+    <script>
+        let _ed;
+        import("/static/Editor.js").then(module => {
+            const Editor = module.Editor;
+            const editor = new Editor(
+                {{ data | tojson }},
+                {{ doc_type | tojson }},
+                {{ event_info | tojson }},
+            );
+            if (window.location.origin.includes("localhost")) {
+                _ed = editor;
+            }
+        });
+    </script>
 {% endblock content %}

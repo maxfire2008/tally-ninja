@@ -68,15 +68,19 @@ def editor(doc_type, id):
     if doc_type not in ["results", "times"]:
         return "Invalid doc_type", 400
 
-    try:
-        with open(
-            app.config["RACEML_DATABASE"] / doc_type / id, "r", encoding="utf-8"
-        ) as file:
-            data = yaml.safe_load(file.read())
-    except FileNotFoundError:
-        data = {}
+    with open(
+        app.config["RACEML_DATABASE"] / "event_info" / id, "r", encoding="utf-8"
+    ) as file:
+        event_info = yaml.safe_load(file.read())
 
-    return flask.render_template("editor.html.j2", doc_type=doc_type, id=id, data=data)
+    with open(
+        app.config["RACEML_DATABASE"] / doc_type / id, "r", encoding="utf-8"
+    ) as file:
+        data = yaml.safe_load(file.read())
+
+    return flask.render_template(
+        "editor.html.j2", doc_type=doc_type, id=id, data=data, event_info=event_info
+    )
 
 
 @app.route("/create_document/<string:doc_type>/<string:id>", methods=["POST"])

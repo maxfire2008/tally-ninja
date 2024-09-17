@@ -20,6 +20,8 @@ export class AthleteInputCell {
         this.element.addEventListener('input', () => {
             this.value = this.element.value;
         });
+
+        return this.element;
     }
 
     destroyHtml() {
