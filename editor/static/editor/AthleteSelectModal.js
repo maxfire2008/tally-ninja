@@ -20,11 +20,12 @@ export function athleteSelectModal(callback) {
     modal.appendChild(modalContent);
 
     let span = document.createElement('span');
-    span.className = 'close';
-    span.textContent = '&times;';
+    span.className = 'modal-close';
+    span.textContent = '×';
     span.addEventListener('click', () => {
         modal.remove();
     });
+    modalContent.appendChild(span);
 
     document.body.appendChild(modal);
 }
