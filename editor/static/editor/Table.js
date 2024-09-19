@@ -58,6 +58,7 @@ export class Table {
         }
 
         // register key event listener
+        this.keydown = this.keydown.bind(this);
         document.addEventListener('keydown', this.keydown);
     }
 
@@ -72,6 +73,19 @@ export class Table {
 
     keydown(event) {
         console.log(event);
+        // Enter will go to the next row but the same cell
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            // get the target of the key event and get it's row
+            let target = event.target;
+            let row = target.parentElement;
+            while (row.tagName !== 'TR') {
+                row = row.parentElement;
+                if (row.parentElement === this.tbody) {
+                    throw new Error('Could not find row');
+                }
+            }
+        }
     }
 
     html() {
