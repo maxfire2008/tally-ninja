@@ -3,11 +3,12 @@ import { Row } from "./Row.js";
 import { AthleteInputCell } from "./AthleteInputCell.js";
 
 export class Table {
-    constructor(rows, type) {
-        this.init(rows, type);
+    constructor(rows, type, config) {
+        this.init(rows, type, config);
     }
 
-    init(rows, type) {
+    init(rows, type, config) {
+        this.config = config;
         this.columns = [];
         if (type === 'race') {
             this.columns.push(
@@ -39,7 +40,7 @@ export class Table {
     appendRow(row) {
         let new_row = new Row();
         for (let column of this.columns) {
-            new_row.appendCell(column.type, row[column.key], column.key);
+            new_row.appendCell(column.type, row[column.key], column.key, this.config);
         }
         this.rows.push(new_row);
     }

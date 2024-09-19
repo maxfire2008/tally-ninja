@@ -8,8 +8,8 @@ export class Row {
         this.cells = [];
     }
 
-    appendCell(type, value, key) {
-        let cell = new type(value);
+    appendCell(type, value, key, config) {
+        let cell = new type(value, config);
         this.cells.push(
             {
                 "cell": cell,

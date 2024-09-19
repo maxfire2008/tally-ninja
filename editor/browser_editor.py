@@ -42,7 +42,7 @@ def index():
     for name in all_names:
         # open the event_info file
         with open(
-            app.config["RACEML_DATABASE"] / "event_info" / name,
+            app.config["RACEML_DATABASE"] / "event_info" / (name + ".yaml"),
             "r",
             encoding="utf-8",
         ) as file:
@@ -69,17 +69,24 @@ def editor(doc_type, id):
         return "Invalid doc_type", 400
 
     with open(
-        app.config["RACEML_DATABASE"] / "event_info" / id, "r", encoding="utf-8"
+        app.config["RACEML_DATABASE"] / "event_info" / (id + ".yaml"),
+        "r",
+        encoding="utf-8",
     ) as file:
         event_info = yaml.safe_load(file.read())
 
     with open(
-        app.config["RACEML_DATABASE"] / doc_type / id, "r", encoding="utf-8"
+        app.config["RACEML_DATABASE"] / doc_type / (id + ".yaml"), "r", encoding="utf-8"
     ) as file:
         data = yaml.safe_load(file.read())
 
     return flask.render_template(
-        "editor.html.j2", doc_type=doc_type, id=id, data=data, event_info=event_info
+        "editor.html.j2",
+        doc_type=doc_type,
+        id=id,
+        data=data,
+        event_info=event_info,
+        config=get_config(),
     )
 
 
@@ -89,11 +96,26 @@ def create_document(doc_type, id):
         return "Invalid doc_type", 400
 
     with open(
-        app.config["RACEML_DATABASE"] / doc_type / id, "w", encoding="utf-8"
+        app.config["RACEML_DATABASE"] / doc_type / (id + ".yaml"), "w", encoding="utf-8"
     ) as file:
         yaml.dump({doc_type: []}, file, default_flow_style=False)
 
     return flask.redirect(flask.url_for("editor", doc_type=doc_type, id=id))
+
+
+@app.route("/api/athlete/<string:student_id>")
+def api_athlete(student_id):
+    try:
+        with open(
+            app.config["RACEML_DATABASE"] / "athletes" / (student_id + ".yaml"),
+            "r",
+            encoding="utf-8",
+        ) as file:
+            athlete = yaml.safe_load(file.read())
+
+        return flask.jsonify(athlete)
+    except FileNotFoundError:
+        return "Not Found", 404
 
 
 def update_dictionary(dictionary, new_data):

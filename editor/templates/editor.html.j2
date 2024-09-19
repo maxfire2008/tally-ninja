@@ -1,4 +1,7 @@
 {% extends "base.html.j2" %}
+{% block head %}
+    <link rel="stylesheet" href="/static/editor.css">
+{% endblock head %}
 {% block content %}
     <div id="editorHolder"></div>
     <script>
@@ -9,6 +12,7 @@
                 {{ data | tojson }},
                 {{ doc_type | tojson }},
                 {{ event_info | tojson }},
+                {{ config | tojson }},
             );
             if (window.location.origin.includes("localhost")) {
                 _ed = editor;
