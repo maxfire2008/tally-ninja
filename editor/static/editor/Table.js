@@ -2,17 +2,20 @@
 import { Row } from "./Row.js";
 import { HeaderTextCell } from "./HeaderTextCell.js";
 import { NumberInputCell } from "./NumberInputCell.js";
+import { DurationInputCell } from "./DurationInputCell.js";
 import { AthleteInputCell } from "./AthleteInputCell.js";
 
 export class Table {
-    constructor(rows, type, config) {
-        this.init(rows, type, config);
+    constructor(rows, type, doc_type, config) {
+        this.init(rows, type, doc_type, config);
     }
 
-    init(rows, type, config) {
+    init(rows, type, doc_type, config) {
         this.config = config;
         this.columns = [];
-        if (type === 'race') {
+        console.log('type', type);
+        console.log('doc_type', doc_type);
+        if (type === 'race' && doc_type === 'results') {
             this.columns.push(
                 {
                     "type": NumberInputCell,
@@ -32,6 +35,28 @@ export class Table {
                     "type": AthleteInputCell,
                     "key": "athlete",
                     "heading": "Athlete",
+                }
+            )
+        } else if (type === 'race' && doc_type === 'times') {
+            this.columns.push(
+                {
+                    "type": NumberInputCell,
+                    "key": "heat",
+                    "heading": "Heat",
+                }
+            )
+            this.columns.push(
+                {
+                    "type": NumberInputCell,
+                    "key": "lane",
+                    "heading": "Lane",
+                }
+            )
+            this.columns.push(
+                {
+                    "type": DurationInputCell,
+                    "key": "time",
+                    "heading": "Time",
                 }
             )
         }
@@ -72,7 +97,6 @@ export class Table {
     }
 
     keydown(event) {
-        console.log(event);
         // Enter will go to the next row but the same cell
         if (event.key === 'Enter') {
             event.preventDefault();

@@ -30,7 +30,7 @@
                     </td>
                     <td>
                         {% if event.times %}
-                            <a href="{{ url_for('editor', doc_type='results', id=event.results) }}">View</a>
+                            <a href="{{ url_for('editor', doc_type='times', id=event.times) }}">View</a>
                         {% elif event.event_type == 'race' %}
                             <form action="{{ url_for('create_document', doc_type='times', id=event.id) }}"
                                   method="post">

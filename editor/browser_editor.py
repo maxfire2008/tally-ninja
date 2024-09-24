@@ -26,14 +26,14 @@ def get_config():
 def index():
     # list files in app.config["RACEML_DATABASE"]/events
     event_info = [
-        f.name for f in (app.config["RACEML_DATABASE"] / "event_info").glob("*.yaml")
+        f.stem for f in (app.config["RACEML_DATABASE"] / "event_info").glob("*.yaml")
     ]
 
     results = [
-        f.name for f in (app.config["RACEML_DATABASE"] / "results").glob("*.yaml")
+        f.stem for f in (app.config["RACEML_DATABASE"] / "results").glob("*.yaml")
     ]
 
-    times = [f.name for f in (app.config["RACEML_DATABASE"] / "times").glob("*.yaml")]
+    times = [f.stem for f in (app.config["RACEML_DATABASE"] / "times").glob("*.yaml")]
 
     all_names = set(event_info + results + times)
 

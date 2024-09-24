@@ -12,7 +12,7 @@ export class Editor {
         this.event_info = event_info;
         this.config = config;
 
-        this.table = new Table(this.data[this.doc_type], this.event_info.event_type, config);
+        this.table = new Table(this.data[this.doc_type], this.event_info.event_type, doc_type, this.config);
 
         const editorHolder = document.getElementById('editorHolder')
         editorHolder.appendChild(this.table.html());
@@ -27,14 +27,14 @@ export class Editor {
             newHeatButton.innerHTML = 'New Heat';
             newHeatButton.addEventListener('click', this.newHeat.bind(this));
             editorHolder.appendChild(newHeatButton);
-
-            this.saveButton = document.createElement('button');
-            this.saveButton.innerHTML = 'Save';
-            this.saveButton.addEventListener('click', () => {
-                this.save();
-            });
-            editorHolder.appendChild(this.saveButton);
         }
+
+        this.saveButton = document.createElement('button');
+        this.saveButton.innerHTML = 'Save';
+        this.saveButton.addEventListener('click', () => {
+            this.save();
+        });
+        editorHolder.appendChild(this.saveButton);
 
         this.keydown = this.keydown.bind(this);
         document.addEventListener('keydown', this.keydown);
@@ -42,11 +42,13 @@ export class Editor {
 
     currentLane() {
         const lanes = this.table.value().map(row => row.lane);
+        lanes.push(0);
         return Math.max(...lanes);
     }
 
     currentHeat() {
         const heats = this.table.value().map(row => row.heat);
+        heats.push(1);
         return Math.max(...heats);
     }
 
