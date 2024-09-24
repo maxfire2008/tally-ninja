@@ -27,11 +27,15 @@ export class Row {
 
         this.element = document.createElement('tr');
 
-        for (let cell of this.cells) {
-            this.element.appendChild(cell.cell.html());
+        for (let [index, cell] of this.cells.entries()) {
+            this.element.appendChild(cell.cell.html(index));
         }
 
         return this.element;
+    }
+
+    focus(i) {
+        this.cells[i].cell.focus();
     }
 
     value() {

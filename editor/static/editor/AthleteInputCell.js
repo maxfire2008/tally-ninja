@@ -11,7 +11,7 @@ export class AthleteInputCell {
         this.config = config;
     }
 
-    html() {
+    html(index) {
         if (this.element !== undefined) {
             this.element.remove();
             delete this.element;
@@ -20,6 +20,7 @@ export class AthleteInputCell {
         this.element = document.createElement('td');
 
         this.button = document.createElement('button');
+        this.button.dataset.index = index;
         this.button.textContent = this.value;
         fetch("/api/athlete/" + this.value).then((response) => {
             if (response.ok) {
@@ -55,6 +56,10 @@ export class AthleteInputCell {
             this.button.remove();
             delete this.button;
         }
+    }
+
+    focus() {
+        this.button.focus();
     }
 
     value() {

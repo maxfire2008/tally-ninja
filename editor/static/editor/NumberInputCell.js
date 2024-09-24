@@ -10,7 +10,7 @@ export class NumberInputCell {
         this.config = config;
     }
 
-    html() {
+    html(index) {
         if (this.element !== undefined) {
             this.element.remove();
             delete this.element;
@@ -19,6 +19,7 @@ export class NumberInputCell {
         this.element = document.createElement('td');
 
         this.input = document.createElement('input');
+        this.input.dataset.index = index;
         this.input.type = 'number';
         this.input.min = 1;
         this.input.value = this.value;
@@ -30,6 +31,10 @@ export class NumberInputCell {
         this.element.appendChild(this.input);
 
         return this.element;
+    }
+
+    focus() {
+        this.input.focus();
     }
 
     destroyHtml() {

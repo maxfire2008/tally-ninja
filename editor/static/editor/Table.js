@@ -78,6 +78,10 @@ export class Table {
             event.preventDefault();
             // get the target of the key event and get it's row
             let target = event.target;
+            let index = parseInt(target.dataset.index);
+
+
+            // get the next row
             let row = target.parentElement;
             while (row.tagName !== 'TR') {
                 row = row.parentElement;
@@ -85,6 +89,26 @@ export class Table {
                     throw new Error('Could not find row');
                 }
             }
+
+            // if shift
+            if (event.shiftKey) {
+                // if there is a previous row, go to it
+                let nextRow = row.previousElementSibling;
+                // if there is no previous row, wrap
+                if (nextRow === null) {
+                    nextRow = this.tbody.lastElementChild;
+                }
+            } else {
+                let nextRow = row.nextElementSibling;
+                // if there is no next row, wrap
+                if (nextRow === null) {
+                    nextRow = this.tbody.firstElementChild;
+                }
+            }
+            // get the cell in the next row at the same index
+            let nextCell = nextRow.children[index];
+            // focus on the cell
+            nextCell.children[0].focus();
         }
     }
 

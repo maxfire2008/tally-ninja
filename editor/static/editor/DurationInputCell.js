@@ -58,7 +58,7 @@ export class DurationInputCell {
     }
 
 
-    html() {
+    html(index) {
         if (this.element !== undefined) {
             this.element.remove();
             delete this.element;
@@ -67,6 +67,7 @@ export class DurationInputCell {
         this.element = document.createElement('td');
 
         this.input = document.createElement('input');
+        this.input.dataset.index = index;
         this.input.type = 'text';
         this.input.value = this.millisecondsToHhmmss(this.value);
 
@@ -84,6 +85,10 @@ export class DurationInputCell {
             this.element.remove();
             delete this.element;
         }
+    }
+
+    focus() {
+        this.input.focus();
     }
 
     value() {
