@@ -1,1 +1,31 @@
-results: []
+results:
+  - athlete: bob
+    heights:
+      1000000:
+        - false
+        - false
+        - true
+      1100000:
+        - false
+        - true
+      1200000:
+        - false
+        - false
+        - false
+  - athlete: dave
+    heights:
+      1000000:
+        - false
+        - true
+      1100000:
+        - false
+        - false
+        - true
+      1200000:
+        - false
+        - false
+        - true
+      1300000:
+        - false
+        - false
+        - false

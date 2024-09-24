@@ -1,5 +1,6 @@
 'use strict';
 import { Table } from './editor/Table.js';
+import { HighJumpInputCell } from './editor/HighJumpInputCell.js';
 
 export class Editor {
     constructor(data, doc_type, event_info, config) {
@@ -27,6 +28,11 @@ export class Editor {
             newHeatButton.innerHTML = 'New Heat';
             newHeatButton.addEventListener('click', this.newHeat.bind(this));
             editorHolder.appendChild(newHeatButton);
+        } else if (this.event_info.event_type === 'high_jump') {
+            const newHeightButton = document.createElement('button');
+            newHeightButton.innerHTML = 'New Height';
+            newHeightButton.addEventListener('click', this.newHeight.bind(this));
+            editorHolder.appendChild(newHeightButton);
         }
 
         this.saveButton = document.createElement('button');
@@ -66,15 +72,32 @@ export class Editor {
         });
     }
 
+    newHeight() {
+        let height = prompt("Enter the new height");
+        this.table.appendColumn(
+            {
+                "type": HighJumpInputCell,
+                "key": height,
+                "heading": height,
+            }
+        )
+    }
 
     keydown(event) {
-        // Shift + L is for new lane
-        if (event.shiftKey && event.key === 'L') {
-            this.newLane();
-        }
-        // Shift + H is for new heat
-        if (event.shiftKey && event.key === 'H') {
-            this.newHeat();
+        if (this.event_info.event_type === 'race') {
+            // Shift + L is for new lane
+            if (event.shiftKey && event.key === 'L') {
+                this.newLane();
+            }
+            // Shift + H is for new heat
+            if (event.shiftKey && event.key === 'H') {
+                this.newHeat();
+            }
+        } else if (this.event_info.event_type === 'high_jump') {
+            // Shift + H is for new height
+            if (event.shiftKey && event.key === 'H') {
+                this.newHeight();
+            }
         }
     }
 }

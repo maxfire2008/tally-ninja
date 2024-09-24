@@ -6,7 +6,7 @@ export class AthleteInputCell {
         this.init(value, config);
     }
 
-    init(value, config) {
+    init(value, config, index) {
         this.value = value;
         this.config = config;
     }
