@@ -93,16 +93,15 @@ class Attempt {
     }
 
     click() {
-        // if this.previous.value is not undefined, then this value can be anything
-        if (this.previous !== null && this.previous.value === undefined) {
+        if (this.next !== null && this.next.value !== undefined) {
             return;
         }
-        if (this.value === true) {
-            this.value = false;
-        } else if (this.value === false && (this.next === null || this.next.value === undefined)) {
-            this.value = undefined;
-        } else {
+        if ((this.previous === null || this.previous.value === false) && this.value === undefined) {
             this.value = true;
+        } else if (this.value === true) {
+            this.value = false;
+        } else {
+            this.value = undefined;
         }
 
         this.updateHtml();
