@@ -119,9 +119,7 @@ export class Table {
         if (this.rows !== undefined) {
             for (let row of this.rows) {
                 // get the value of the cell
-                console.log(column.key);
-                let value = row.value()[column.key];
-                row.appendCell(column.type, value, column.key, this.config);
+                row.appendCell(column.type, null, column.key, this.config);
             }
         }
     }
@@ -129,7 +127,12 @@ export class Table {
     appendRow(row) {
         let new_row = new Row();
         for (let column of this.columns) {
-            new_row.appendCell(column.type, row[column.key], column.key, this.config);
+            const key = column.key.split('.');
+            let value = row;
+            while (key.length > 0) {
+                value = value[key.shift()];
+            }
+            new_row.appendCell(column.type, value, column.key, this.config);
         }
         if (new_row.onAdd !== undefined) {
             new_row.onAdd();
