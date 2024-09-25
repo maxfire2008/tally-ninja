@@ -4,19 +4,30 @@ export class Row {
         this.init();
     }
 
-    init(index) {
+    init() {
         this.cells = [];
     }
 
     appendCell(type, value, key, config) {
-        let cell = new type(value, config);
-        this.cells.push(
-            {
-                "cell": cell,
-                "key": key,
-            }
-        );
-        return cell;
+        if (key === "!delete") {
+            let cell = new type(value, config, this.delete.bind(this));
+            this.cells.push(
+                {
+                    "cell": cell,
+                    "key": key,
+                }
+            );
+            return cell;
+        } else {
+            let cell = new type(value, config);
+            this.cells.push(
+                {
+                    "cell": cell,
+                    "key": key,
+                }
+            );
+            return cell;
+        }
     }
 
     html() {
@@ -35,6 +46,11 @@ export class Row {
         return this.element;
     }
 
+    delete() {
+        this.element.remove();
+        this.value = function () { return undefined; }
+    }
+
     focus(i) {
         this.cells[i].cell.focus();
     }
@@ -42,7 +58,9 @@ export class Row {
     value() {
         let row = {};
         for (let cell of this.cells) {
-            row[cell.key] = cell.cell.value;
+            if (cell.cell.value !== undefined) {
+                row[cell.key] = cell.cell.value;
+            }
         }
         return row;
     }

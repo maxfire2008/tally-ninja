@@ -5,6 +5,7 @@ import { NumberInputCell } from "./NumberInputCell.js";
 import { DurationInputCell } from "./DurationInputCell.js";
 import { AthleteInputCell } from "./AthleteInputCell.js";
 import { HighJumpInputCell } from "./HighJumpInputCell.js";
+import { DeleteButtonCell } from "./DeleteButtonCell.js";
 
 export class Table {
     constructor(rows, type, doc_type, config) {
@@ -16,6 +17,25 @@ export class Table {
         this.columns = [];
         console.log('type', type);
         console.log('doc_type', doc_type);
+
+        this.element = document.createElement("table");
+
+        this.thead = document.createElement("thead");
+
+        this.header = new Row();
+        this.thead.appendChild(this.header.html());
+
+        this.element.appendChild(this.thead);
+
+        this.tbody = document.createElement("tbody");
+        this.element.appendChild(this.tbody);
+
+        this.rows = [];
+
+        for (let row of rows) {
+            this.appendRow(row);
+        }
+
         if (type === 'race' && doc_type === 'results') {
             this.appendColumn(
                 {
@@ -88,26 +108,13 @@ export class Table {
             }
         }
 
-        this.element = document.createElement("table");
-
-        this.thead = document.createElement("thead");
-
-        this.header = new Row();
-        for (let column of this.columns) {
-            this.header.appendCell(HeaderTextCell, column.heading, column.key, this.config);
-        }
-        this.thead.appendChild(this.header.html());
-
-        this.element.appendChild(this.thead);
-
-        this.tbody = document.createElement("tbody");
-        this.element.appendChild(this.tbody);
-
-        this.rows = [];
-
-        for (let row of rows) {
-            this.appendRow(row);
-        }
+        this.appendColumn(
+            {
+                "type": DeleteButtonCell,
+                "key": "!delete",
+                "heading": "",
+            }
+        )
 
         // register key event listener
         this.keydown = this.keydown.bind(this);
@@ -115,12 +122,11 @@ export class Table {
     }
 
     appendColumn(column) {
+        this.header.appendCell(HeaderTextCell, column.heading, column.key, this.config);
         this.columns.push(column);
-        if (this.rows !== undefined) {
-            for (let row of this.rows) {
-                // get the value of the cell
-                row.appendCell(column.type, null, column.key, this.config);
-            }
+        for (let row of this.rows) {
+            // get the value of the cell
+            row.appendCell(column.type, null, column.key, this.config);
         }
     }
 
@@ -201,7 +207,10 @@ export class Table {
     value() {
         let table = [];
         for (let row of this.rows) {
-            table.push(row.value());
+            const row_value = row.value();
+            if (row_value !== undefined) {
+                table.push(row_value);
+            }
         }
         return table;
     }
