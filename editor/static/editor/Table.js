@@ -147,10 +147,6 @@ export class Table {
             event.preventDefault();
             // get the target of the key event and get it's row
             let target = event.target;
-            let index = parseInt(target.dataset.index);
-
-
-            // get the next row
             let row = target.parentElement;
             while (row.tagName !== 'TR') {
                 row = row.parentElement;
