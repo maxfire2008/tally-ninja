@@ -1,7 +1,7 @@
 times:
   - lane: 1
     heat: 1
-    time: 23400
+    time: 23000004
   - lane: 2
     heat: 1
-    time: 52700
+    time: 52700000

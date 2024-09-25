@@ -2,38 +2,90 @@
 import { Row } from "./Row.js";
 import { HeaderTextCell } from "./HeaderTextCell.js";
 import { NumberInputCell } from "./NumberInputCell.js";
+import { DurationInputCell } from "./DurationInputCell.js";
 import { AthleteInputCell } from "./AthleteInputCell.js";
+import { HighJumpInputCell } from "./HighJumpInputCell.js";
 
 export class Table {
-    constructor(rows, type, config) {
-        this.init(rows, type, config);
+    constructor(rows, type, doc_type, config) {
+        this.init(rows, type, doc_type, config);
     }
 
-    init(rows, type, config) {
+    init(rows, type, doc_type, config) {
         this.config = config;
         this.columns = [];
-        if (type === 'race') {
-            this.columns.push(
+        console.log('type', type);
+        console.log('doc_type', doc_type);
+        if (type === 'race' && doc_type === 'results') {
+            this.appendColumn(
                 {
                     "type": NumberInputCell,
                     "key": "heat",
                     "heading": "Heat",
                 }
             )
-            this.columns.push(
+            this.appendColumn(
                 {
                     "type": NumberInputCell,
                     "key": "lane",
                     "heading": "Lane",
                 }
             )
-            this.columns.push(
+            this.appendColumn(
                 {
                     "type": AthleteInputCell,
                     "key": "athlete",
                     "heading": "Athlete",
                 }
             )
+        } else if (type === 'race' && doc_type === 'times') {
+            this.appendColumn(
+                {
+                    "type": NumberInputCell,
+                    "key": "heat",
+                    "heading": "Heat",
+                }
+            )
+            this.appendColumn(
+                {
+                    "type": NumberInputCell,
+                    "key": "lane",
+                    "heading": "Lane",
+                }
+            )
+            this.appendColumn(
+                {
+                    "type": DurationInputCell,
+                    "key": "time",
+                    "heading": "Time",
+                }
+            )
+        } else if (type === 'high_jump') {
+            this.appendColumn(
+                {
+                    "type": AthleteInputCell,
+                    "key": "athlete",
+                    "heading": "Athlete",
+                }
+            )
+            // iterate all the heights in the data and add a column for each
+            let heights = new Set();
+            for (let row of rows) {
+                console.log(row.heights);
+                for (let height of Object.keys(row.heights)) {
+                    heights.add(height);
+                }
+            }
+            heights = Array.from(heights).sort();
+            for (let height of heights) {
+                this.appendColumn(
+                    {
+                        "type": HighJumpInputCell,
+                        "key": "heights." + height,
+                        "heading": height,
+                    }
+                )
+            }
         }
 
         this.element = document.createElement("table");
@@ -62,17 +114,34 @@ export class Table {
         document.addEventListener('keydown', this.keydown);
     }
 
+    appendColumn(column) {
+        this.columns.push(column);
+        if (this.rows !== undefined) {
+            for (let row of this.rows) {
+                // get the value of the cell
+                row.appendCell(column.type, null, column.key, this.config);
+            }
+        }
+    }
+
     appendRow(row) {
         let new_row = new Row();
         for (let column of this.columns) {
-            new_row.appendCell(column.type, row[column.key], column.key, this.config);
+            const key = column.key.split('.');
+            let value = row;
+            while (key.length > 0) {
+                value = value[key.shift()];
+            }
+            new_row.appendCell(column.type, value, column.key, this.config);
+        }
+        if (new_row.onAdd !== undefined) {
+            new_row.onAdd();
         }
         this.rows.push(new_row);
         this.tbody.appendChild(new_row.html());
     }
 
     keydown(event) {
-        console.log(event);
         // Enter will go to the next row but the same cell
         if (event.key === 'Enter') {
             event.preventDefault();
@@ -85,30 +154,47 @@ export class Table {
             let row = target.parentElement;
             while (row.tagName !== 'TR') {
                 row = row.parentElement;
-                if (row.parentElement === this.tbody) {
+                if (row === this.tbody) {
                     throw new Error('Could not find row');
                 }
             }
 
-            // if shift
-            if (event.shiftKey) {
-                // if there is a previous row, go to it
-                let nextRow = row.previousElementSibling;
-                // if there is no previous row, wrap
-                if (nextRow === null) {
-                    nextRow = this.tbody.lastElementChild;
-                }
-            } else {
-                let nextRow = row.nextElementSibling;
-                // if there is no next row, wrap
-                if (nextRow === null) {
-                    nextRow = this.tbody.firstElementChild;
+            // get the index of the row
+            let index = Array.from(this.tbody.children).indexOf(row);
+
+            // get the index of the object within the row (note: it may be nested)
+            let cell = target;
+            while (cell.tagName !== 'TD') {
+                cell = cell.parentElement;
+                if (cell === row) {
+                    throw new Error('Could not find cell');
                 }
             }
-            // get the cell in the next row at the same index
-            let nextCell = nextRow.children[index];
-            // focus on the cell
-            nextCell.children[0].focus();
+            let cell_index = Array.from(row.children).indexOf(cell);
+
+            // get the next row
+            // if shift
+            let next_row;
+            if (event.shiftKey) {
+                next_row = this.tbody.children[index - 1];
+                if (next_row === undefined) {
+                    // wrap around to the bottom
+                    next_row = this.tbody.children[this.tbody.children.length - 1];
+                }
+            } else {
+                next_row = this.tbody.children[index + 1];
+                if (next_row === undefined) {
+                    // wrap around to the top
+                    next_row = this.tbody.children[0];
+                }
+            }
+
+            // get the next cell
+            let next_cell = next_row.children[cell_index];
+            let input = next_cell.querySelector("input, button");
+            if (input !== null) {
+                input.focus();
+            }
         }
     }
 

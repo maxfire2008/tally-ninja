@@ -10,16 +10,20 @@ export class DurationInputCell {
         this.config = config;
     }
 
-    millisecondsToHhmmss(milliseconds) {
-        if (!Number.isInteger(milliseconds)) {
-            throw new TypeError("milliseconds must be an integer");
+    microsecondsToHhmmss(microseconds) {
+        if (microseconds === undefined) {
+            return "";
+        }
+        if (!Number.isInteger(microseconds)) {
+            throw new TypeError("microseconds must be an integer");
         }
 
-        const secondsTotal = milliseconds / 1000;
-        const hours = Math.floor(secondsTotal / 3600);
-        const minutes = Math.floor((secondsTotal % 3600) / 60);
-        const seconds = Math.floor(secondsTotal % 60);
-        const decimalPart = (secondsTotal % 1).toFixed(3).substring(1);
+        const hours = Math.floor(microseconds / 3600000000);
+        const minutes = Math.floor((microseconds % 3600000000) / 60000000);
+        const seconds = Math.floor((microseconds % 60000000) / 1000000);
+        const mcrs = (microseconds % 1000000);
+
+        console.log(hours, minutes, seconds, mcrs);
 
         let output = "";
 
@@ -30,31 +34,44 @@ export class DurationInputCell {
             output += minutes.toString().padStart(2, "0") + ":";
         }
         output += seconds.toString().padStart(2, "0");
-        if (decimalPart > 0) {
-            output += decimalPart;
+        if (mcrs > 0) {
+            const mcrss = mcrs.toString().padStart(6, "0")
+            // trim trailing zeros (DO NOT USE REGEX)
+            let i = 5;
+            while (mcrss[i] === "0") {
+                i--;
+            }
+            output += "." + mcrss.substring(0, i + 1);
         }
 
         return output;
     }
 
-    hhmmssToMilliseconds(hhmmss) {
-        hhmmss = hhmmss.toString();
+    hhmmssTomicroseconds(hhmmss) {
+        if (hhmmss === "" || hhmmss === undefined) {
+            return undefined;
+        }
 
-        if (hhmmss.split(".").length >= 2 && hhmmss.split(".")[1].length > 3) {
-            throw new Error("More than 3 digits after the decimal point in " + hhmmss);
+        if (hhmmss.split(".").length >= 2 && hhmmss.split(".")[1].length > 6) {
+            throw new Error("More than 6 digits after the decimal point");
         }
 
         const hhmmssSplit = hhmmss.split(":");
-        let seconds = parseFloat(hhmmssSplit[hhmmssSplit.length - 1]);
+        const secondsSplit = hhmmssSplit[hhmmssSplit.length - 1].split(".");
+        let microseconds = parseInt(secondsSplit[0]) * 1000000;
+
+        if (secondsSplit.length > 1) {
+            microseconds += parseInt(secondsSplit[1].padEnd(6, "0"));
+        }
 
         if (hhmmssSplit.length > 1) {
-            seconds += parseFloat(hhmmssSplit[hhmmssSplit.length - 2]) * 60;
+            microseconds += parseInt(hhmmssSplit[hhmmssSplit.length - 2]) * 60000000;
         }
         if (hhmmssSplit.length > 2) {
-            seconds += parseFloat(hhmmssSplit[hhmmssSplit.length - 3]) * 3600;
+            microseconds += parseInt(hhmmssSplit[hhmmssSplit.length - 3]) * 3600000000;
         }
 
-        return Math.round(seconds * 1000);
+        return microseconds;
     }
 
 
@@ -69,10 +86,23 @@ export class DurationInputCell {
         this.input = document.createElement('input');
         this.input.dataset.index = index;
         this.input.type = 'text';
-        this.input.value = this.millisecondsToHhmmss(this.value);
+        this.input.value = this.microsecondsToHhmmss(this.value);
+
+        this.sixDPAttempts = 0;
 
         this.input.addEventListener('input', () => {
-            this.value = this.hhmmssToMilliseconds(this.element.value);
+            try {
+                this.value = this.hhmmssTomicroseconds(this.input.value);
+            } catch (e) {
+                if (e.toString() === "Error: More than 6 digits after the decimal point") {
+                    this.input.value = this.input.value.substring(0, this.input.value.length - 1);
+                    this.sixDPAttempts++;
+                    if (this.sixDPAttempts > 3) {
+                        alert("You can only have 6 decimal places");
+                        this.sixDPAttempts = 0;
+                    }
+                }
+            }
         });
 
         this.element.appendChild(this.input);

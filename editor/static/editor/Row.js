@@ -4,7 +4,7 @@ export class Row {
         this.init();
     }
 
-    init() {
+    init(index) {
         this.cells = [];
     }
 
@@ -26,6 +26,7 @@ export class Row {
         }
 
         this.element = document.createElement('tr');
+        this.element.dataset.index = this.index;
 
         for (let [index, cell] of this.cells.entries()) {
             this.element.appendChild(cell.cell.html(index));
