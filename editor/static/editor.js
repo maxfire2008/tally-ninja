@@ -16,7 +16,7 @@ export class Editor {
         this.table = new Table(this.data[this.doc_type], this.event_info.event_type, doc_type, this.config);
 
         const editorHolder = document.getElementById('editorHolder')
-        editorHolder.appendChild(this.table.html());
+        editorHolder.appendChild(this.table.element);
 
         if (this.event_info.event_type === 'race') {
             const newLaneButton = document.createElement('button');

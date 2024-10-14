@@ -6,6 +6,8 @@ export class Row {
 
     init() {
         this.cells = [];
+
+        this.element = document.createElement('tr');
     }
 
     appendCell(type, value, key, config) {
@@ -17,7 +19,7 @@ export class Row {
                     "key": key,
                 }
             );
-            return cell;
+            this.element.appendChild(cell.html());
         } else {
             let cell = new type(value, config);
             this.cells.push(
@@ -26,24 +28,8 @@ export class Row {
                     "key": key,
                 }
             );
-            return cell;
+            this.element.appendChild(cell.html());
         }
-    }
-
-    html() {
-        if (this.element !== undefined) {
-            this.element.remove();
-            delete this.element;
-        }
-
-        this.element = document.createElement('tr');
-        this.element.dataset.index = this.index;
-
-        for (let [index, cell] of this.cells.entries()) {
-            this.element.appendChild(cell.cell.html(index));
-        }
-
-        return this.element;
     }
 
     delete() {

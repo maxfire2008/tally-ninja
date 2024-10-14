@@ -23,7 +23,7 @@ export class Table {
         this.thead = document.createElement("thead");
 
         this.header = new Row();
-        this.thead.appendChild(this.header.html());
+        this.thead.appendChild(this.header.element);
 
         this.element.appendChild(this.thead);
 
@@ -122,6 +122,7 @@ export class Table {
     }
 
     appendColumn(column) {
+        console.log('column', column);
         this.header.appendCell(HeaderTextCell, column.heading, column.key, this.config);
         this.columns.push(column);
         for (let row of this.rows) {
@@ -144,7 +145,7 @@ export class Table {
             new_row.onAdd();
         }
         this.rows.push(new_row);
-        this.tbody.appendChild(new_row.html());
+        this.tbody.appendChild(new_row.element);
     }
 
     keydown(event) {
@@ -198,10 +199,6 @@ export class Table {
                 input.focus();
             }
         }
-    }
-
-    html() {
-        return this.element;
     }
 
     value() {
