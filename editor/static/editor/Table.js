@@ -123,7 +123,6 @@ export class Table {
     }
 
     appendColumn(column) {
-        console.log('column', column);
         this.heading_data[column.key] = column.heading;
         this.header.appendCell(HeaderTextCell, column.key, this.config);
         this.columns.push(column);

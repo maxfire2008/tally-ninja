@@ -24,7 +24,6 @@ export class Row {
             this.element.appendChild(cell.html());
         } else {
             const key_split = key.split('.');
-            console.log('key_split', key_split, "data", this.data);
             let value;
             if (key in this.data) {
                 value = this.data[key];
@@ -34,8 +33,6 @@ export class Row {
                     value = value[key_split.shift()];
                 }
             }
-
-            console.log('value', value);
 
 
             let cell = new type(value, config);
@@ -61,7 +58,7 @@ export class Row {
     value() {
         let row = {};
         for (let cell of this.cells) {
-            if (cell.cell.value !== undefined) {
+            if (cell.cell.value !== undefined && cell.key !== "!delete") {
                 row[cell.key] = cell.cell.value;
             }
         }

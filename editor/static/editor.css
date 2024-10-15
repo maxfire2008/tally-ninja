@@ -44,3 +44,7 @@
 .high_jump_input_cell > button {
   flex: 1;
 }
+
+.athlete_input_cell > button {
+  width: 10rem;
+}

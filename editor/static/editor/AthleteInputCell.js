@@ -18,6 +18,7 @@ export class AthleteInputCell {
         }
 
         this.element = document.createElement('td');
+        this.element.classList.add('athlete_input_cell');
 
         this.button = document.createElement('button');
         this.button.dataset.index = index;
@@ -30,7 +31,6 @@ export class AthleteInputCell {
                     // if the colour is darker than 50% grey, use white text
                     let rgb = this.button.style.backgroundColor.split("rgb")[1].slice(1, -1).split(", ");
                     let brightness = Math.round(((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) + (parseInt(rgb[2]) * 114)) / 1000);
-                    console.log(brightness);
                     if (brightness < 128) {
                         this.button.style.color = "white";
                     }

@@ -100,4 +100,23 @@ export class Editor {
             }
         }
     }
+
+    save() {
+        const data = this.table.value();
+        console.log('data', data);
+        // this.data[this.doc_type] = data;
+        // fetch('/api/save', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify(this.data),
+        // }).then(response => {
+        //     if (response.ok) {
+        //         alert('Data saved');
+        //     } else {
+        //         alert('Error saving data');
+        //     }
+        // });
+    }
 }
