@@ -22,7 +22,8 @@ export class Table {
 
         this.thead = document.createElement("thead");
 
-        this.header = new Row();
+        this.heading_data = {};
+        this.header = new Row(this.heading_data);
         this.thead.appendChild(this.header.element);
 
         this.element.appendChild(this.thead);
@@ -123,23 +124,19 @@ export class Table {
 
     appendColumn(column) {
         console.log('column', column);
-        this.header.appendCell(HeaderTextCell, column.heading, column.key, this.config);
+        this.heading_data[column.key] = column.heading;
+        this.header.appendCell(HeaderTextCell, column.key, this.config);
         this.columns.push(column);
         for (let row of this.rows) {
             // get the value of the cell
-            row.appendCell(column.type, null, column.key, this.config);
+            row.appendCell(column.type, column.key, this.config);
         }
     }
 
     appendRow(row) {
-        let new_row = new Row();
+        let new_row = new Row(row);
         for (let column of this.columns) {
-            const key = column.key.split('.');
-            let value = row;
-            while (key.length > 0) {
-                value = value[key.shift()];
-            }
-            new_row.appendCell(column.type, value, column.key, this.config);
+            new_row.appendCell(column.type, column.key, this.config);
         }
         if (new_row.onAdd !== undefined) {
             new_row.onAdd();

@@ -1,18 +1,20 @@
 'use strict';
 export class Row {
-    constructor() {
-        this.init();
+    constructor(data) {
+        this.init(data);
     }
 
-    init() {
+    init(data) {
         this.cells = [];
+
+        this.data = data;
 
         this.element = document.createElement('tr');
     }
 
-    appendCell(type, value, key, config) {
+    appendCell(type, key, config) {
         if (key === "!delete") {
-            let cell = new type(value, config, this.delete.bind(this));
+            let cell = new type(null, config, this.delete.bind(this));
             this.cells.push(
                 {
                     "cell": cell,
@@ -21,6 +23,21 @@ export class Row {
             );
             this.element.appendChild(cell.html());
         } else {
+            const key_split = key.split('.');
+            console.log('key_split', key_split, "data", this.data);
+            let value;
+            if (key in this.data) {
+                value = this.data[key];
+            } else {
+                value = this.data;
+                while (key_split.length > 0) {
+                    value = value[key_split.shift()];
+                }
+            }
+
+            console.log('value', value);
+
+
             let cell = new type(value, config);
             this.cells.push(
                 {

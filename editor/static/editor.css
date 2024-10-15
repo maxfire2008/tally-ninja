@@ -34,3 +34,13 @@
   text-decoration: none;
   cursor: pointer;
 }
+
+.high_jump_input_cell {
+  display: flex;
+  flex-direction: row;
+  width: 5rem;
+}
+
+.high_jump_input_cell > button {
+  flex: 1;
+}

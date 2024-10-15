@@ -30,8 +30,13 @@ export class HighJumpInputCell {
 
         this.element = document.createElement('td');
 
+        this.div = document.createElement('div');
+        this.div.classList.add('high_jump_input_cell');
+
+        this.element.appendChild(this.div);
+
         for (let attempt of this.attempts) {
-            this.element.appendChild(attempt.html());
+            this.div.appendChild(attempt.html());
         }
 
         return this.element;
@@ -92,16 +97,28 @@ class Attempt {
         }
     }
 
-    click() {
-        if (this.next !== null && this.next.value !== undefined) {
-            return;
-        }
-        if ((this.previous === null || this.previous.value === false) && this.value === undefined) {
-            this.value = true;
-        } else if (this.value === true) {
-            this.value = false;
+    click(event) {
+        // if the user is holding shift, then we use alternative logic
+        if (event.shiftKey) {
+            // just do what the user says without any checks
+            if (this.value === false) {
+                this.value = true;
+            } else if (this.value === true) {
+                this.value = undefined;
+            } else {
+                this.value = false;
+            }
         } else {
-            this.value = undefined;
+            if (this.next !== null && this.next.value !== undefined) {
+                return;
+            }
+            if ((this.previous === null || this.previous.value === false) && this.value === undefined) {
+                this.value = false;
+            } else if ((this.next === null || this.next.value === undefined) && this.value === false) {
+                this.value = true;
+            } else {
+                this.value = undefined;
+            }
         }
 
         this.updateHtml();
