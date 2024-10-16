@@ -1,1 +1,13 @@
-results: []
+results:
+- athlete: alice
+  heat: 1
+  lane: 1
+- athlete: bob
+  heat: 1
+  lane: 2
+- athlete: dave
+  heat: '2'
+  lane: '1'
+- athlete: ella
+  heat: '2'
+  lane: '2'

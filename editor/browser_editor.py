@@ -90,6 +90,30 @@ def editor(doc_type, id):
     )
 
 
+@app.route("/api/save/editor/<string:doc_type>/<string:id>", methods=["POST"])
+def save_editor(doc_type, id):
+    request_body = flask.request.json
+    # load the existing data
+    with open(
+        app.config["RACEML_DATABASE"] / doc_type / (id + ".yaml"), "r", encoding="utf-8"
+    ) as file:
+        original_data = yaml.safe_load(file.read())
+
+    # check the data hasn't been modified since the editor was opened
+    print(request_body["original"])
+    print(original_data)
+    if request_body["original"] != original_data:
+        return "Conflict", 409
+
+    # update the data
+    with open(
+        app.config["RACEML_DATABASE"] / doc_type / (id + ".yaml"), "w", encoding="utf-8"
+    ) as file:
+        yaml.dump(request_body["updated"], file, default_flow_style=False)
+
+    return "OK", 200
+
+
 @app.route("/create_document/<string:doc_type>/<string:id>", methods=["POST"])
 def create_document(doc_type, id):
     if doc_type not in ["results", "times"]:
