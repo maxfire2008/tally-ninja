@@ -47,4 +47,9 @@
 
 .athlete_input_cell > button {
   width: 10rem;
+  min-height: 1.5rem;
+}
+
+.number_input_cell > input {
+  width: 3rem;
 }

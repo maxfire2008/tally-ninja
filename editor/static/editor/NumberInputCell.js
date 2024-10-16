@@ -17,6 +17,7 @@ export class NumberInputCell {
         }
 
         this.element = document.createElement('td');
+        this.element.classList.add('number_input_cell');
 
         this.input = document.createElement('input');
         this.input.dataset.index = index;
