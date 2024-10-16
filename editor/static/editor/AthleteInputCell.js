@@ -23,6 +23,24 @@ export class AthleteInputCell {
         this.button = document.createElement('button');
         this.button.dataset.index = index;
         this.button.textContent = this.value;
+        this.updateButtonTextAndColour();
+        this.button.addEventListener('click', () => {
+            // athleteSelectModal((athlete) => {
+            //     if (athlete !== null) {
+            //         this.button.textContent = athlete.name;
+            //         this.value = athlete.id;
+            //     }
+            // });
+            this.value = prompt("Enter athlete ID", this.value);
+            this.updateButtonTextAndColour();
+        });
+
+        this.element.appendChild(this.button);
+
+        return this.element;
+    }
+
+    updateButtonTextAndColour() {
         fetch("/api/athlete/" + this.value).then((response) => {
             if (response.ok) {
                 response.json().then((athlete) => {
@@ -37,18 +55,6 @@ export class AthleteInputCell {
                 });
             }
         });
-        this.button.addEventListener('click', () => {
-            athleteSelectModal((athlete) => {
-                if (athlete !== null) {
-                    this.button.textContent = athlete.name;
-                    this.value = athlete.id;
-                }
-            });
-        });
-
-        this.element.appendChild(this.button);
-
-        return this.element;
     }
 
     destroyHtml() {
